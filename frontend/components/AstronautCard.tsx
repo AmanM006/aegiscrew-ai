@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { AstronautStateResponse, TrafficLight, RiskFactor } from '@/types/telemetry'
-import { Stethoscope, AlertOctagon, Activity, HeartPulse, Moon, Radiation, Zap, CheckCircle } from 'lucide-react'
+import { Stethoscope, AlertOctagon, Radiation, CheckCircle } from 'lucide-react'
 
 interface Props {
   astro: AstronautStateResponse
@@ -33,26 +33,26 @@ function ReadinessGauge({ score, status }: { score: number; status: TrafficLight
   const color  = STATUS_COLOR[status]
 
   return (
-    <svg width="100" height="100" viewBox="0 0 100 100" className="flex-shrink-0">
+    <svg width="84" height="84" viewBox="0 0 100 100" className="flex-shrink-0">
       {/* Track */}
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#1E293B" strokeWidth="7" />
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#162033" strokeWidth="5" />
       {/* Arc */}
       <circle
         cx={cx} cy={cy} r={r}
         fill="none"
         stroke={color}
-        strokeWidth="7"
+        strokeWidth="5"
         strokeDasharray={circ}
         strokeDashoffset={offset}
         strokeLinecap="round"
         transform="rotate(-90 50 50)"
-        style={{ transition: 'stroke-dashoffset 0.6s ease', filter: `drop-shadow(0 0 6px ${color})` }}
+        style={{ transition: 'stroke-dashoffset 0.6s ease' }}
       />
       {/* Score label */}
-      <text x={cx} y={cy - 4} textAnchor="middle" fill={color} fontSize="16" fontWeight="900" fontFamily="var(--font-orbitron)">
+      <text x={cx} y={cy - 2} textAnchor="middle" fill={color} fontSize="17" fontWeight="700" fontFamily="var(--font-mono)">
         {score.toFixed(0)}
       </text>
-      <text x={cx} y={cy + 12} textAnchor="middle" fill="#64748B" fontSize="8" fontWeight="700" fontFamily="var(--font-mono)">
+      <text x={cx} y={cy + 13} textAnchor="middle" fill="#64748B" fontSize="8" fontWeight="600" fontFamily="var(--font-mono)">
         READINESS
       </text>
     </svg>
@@ -77,31 +77,33 @@ export default function AstronautCard({ astro, prescribing, prescriptionText, on
 
   return (
     <div
-      className="bg-[#070D1F]/90 backdrop-blur-xl rounded-2xl border p-5 flex flex-col justify-between space-y-4 relative transition-all duration-300 hover:border-cyan-500/40 shadow-xl"
+      className="bg-[#0C1222] rounded-lg border p-4 flex flex-col justify-between space-y-3.5 transition-colors"
       style={{
-        borderColor: color + '44',
-        boxShadow:   risk.status !== 'GREEN' ? `0 0 25px ${color}22` : undefined,
+        borderColor: risk.status !== 'GREEN' ? color + '66' : '#1A2438',
       }}
     >
       {/* SPE Alert Badge */}
       {f.radiation.spe_alert_status === 'EMERGENCY' && (
-        <div className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full text-[9px] font-orbitron font-bold bg-[#EF4444]/20 text-[#EF4444] border border-[#EF4444]/50 animate-pulse flex items-center gap-1 shadow-neon-red">
-          <Radiation className="w-3 h-3" />
-          <span>SPE ACTIVE</span>
+        <div className="flex items-center justify-between px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-red-950/60 text-red-400 border border-red-500/30">
+          <span className="flex items-center gap-1">
+            <Radiation className="w-3 h-3" />
+            <span>SPE ACTIVE</span>
+          </span>
+          <span className="text-[9px]">EVA HALT</span>
         </div>
       )}
 
       <div>
         {/* Header Row */}
-        <div className="flex items-center gap-3.5 mb-3">
+        <div className="flex items-center gap-3 mb-2.5">
           <ReadinessGauge score={risk.mission_readiness_score} status={risk.status} />
           <div className="min-w-0">
-            <div className="font-mono text-[10px] text-[#64748B] uppercase tracking-wider">{profile.id}</div>
-            <div className="font-orbitron font-bold text-white text-sm tracking-wide leading-snug">{profile.name}</div>
-            <div className="text-[11px] text-[#94A3B8] font-sans truncate">{profile.role}</div>
+            <div className="font-mono text-[10px] text-slate-500 uppercase tracking-wider">{profile.id}</div>
+            <div className="font-semibold text-slate-100 text-xs tracking-tight">{profile.name}</div>
+            <div className="text-[11px] text-slate-400 truncate">{profile.role}</div>
 
             {/* Risk Sub-Indices */}
-            <div className="flex flex-wrap gap-1.5 mt-2">
+            <div className="flex flex-wrap gap-1 mt-1.5">
               {[
                 { label: 'FAT', val: risk.fatigue_risk_score, high: 50 },
                 { label: 'CVX', val: risk.cardiovascular_risk_score, high: 50 },
@@ -109,9 +111,9 @@ export default function AstronautCard({ astro, prescribing, prescriptionText, on
               ].map((r) => (
                 <span
                   key={r.label}
-                  className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded"
+                  className="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded"
                   style={{
-                    background: r.val >= r.high ? '#EF444420' : '#1E293B',
+                    background: r.val >= r.high ? '#EF444420' : '#162033',
                     color:       r.val >= r.high ? '#EF4444'  : '#94A3B8',
                   }}
                 >
@@ -123,13 +125,13 @@ export default function AstronautCard({ astro, prescribing, prescriptionText, on
         </div>
 
         {/* 8-Vital Grid */}
-        <div className="grid grid-cols-4 gap-1.5 my-3">
+        <div className="grid grid-cols-4 gap-1 my-2.5">
           {vitals.map((v) => (
-            <div key={v.label} className="flex flex-col items-center p-1.5 rounded-lg bg-[#040814] border border-[#1E293B]/60">
-              <span className="text-[9px] text-[#64748B] font-mono uppercase tracking-tight">{v.label}</span>
+            <div key={v.label} className="flex flex-col items-center p-1 rounded bg-[#080D1A] border border-[#162033]">
+              <span className="text-[8px] text-slate-500 font-mono uppercase tracking-tight">{v.label}</span>
               <span
-                className="text-[10px] font-mono font-bold mt-0.5"
-                style={{ color: v.warn ? '#EF4444' : '#F1F5F9' }}
+                className="text-[10px] font-mono font-semibold mt-0.5"
+                style={{ color: v.warn ? '#EF4444' : '#E2E8F0' }}
               >
                 {v.value}
               </span>
@@ -139,18 +141,18 @@ export default function AstronautCard({ astro, prescribing, prescriptionText, on
 
         {/* Clinical Anomaly Badges */}
         {risk.anomalies.length > 0 && (
-          <div className="space-y-1.5 my-2">
+          <div className="space-y-1 my-2">
             {risk.anomalies.slice(0, 2).map((a: RiskFactor, i) => (
               <div
                 key={i}
-                className="text-[10px] font-mono px-2.5 py-1 rounded-md border flex items-center gap-1.5"
+                className="text-[9px] font-mono px-2 py-0.5 rounded border flex items-center gap-1"
                 style={{
                   color:       SEVERITY_COLOR[a.severity],
-                  borderColor: SEVERITY_COLOR[a.severity] + '40',
-                  background:  SEVERITY_COLOR[a.severity] + '15',
+                  borderColor: SEVERITY_COLOR[a.severity] + '30',
+                  background:  SEVERITY_COLOR[a.severity] + '10',
                 }}
               >
-                <AlertOctagon className="w-3 h-3 flex-shrink-0" />
+                <AlertOctagon className="w-2.5 h-2.5 flex-shrink-0" />
                 <span className="truncate">{a.description}</span>
               </div>
             ))}
@@ -166,28 +168,28 @@ export default function AstronautCard({ astro, prescribing, prescriptionText, on
             setShowPrescription(true)
           }}
           disabled={prescribing}
-          className="w-full py-2 px-3 bg-[#0B1528] hover:bg-[#00F0FF]/15 border border-[#00F0FF]/40 hover:border-[#00F0FF] text-[#00F0FF] text-xs font-orbitron font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-neon-cyan disabled:opacity-50"
+          className="w-full py-1.5 px-3 bg-[#080D1A] hover:border-sky-500/40 border border-[#162033] text-sky-300 text-xs font-mono rounded transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
         >
-          <Stethoscope className="w-3.5 h-3.5" />
-          <span>{prescribing ? 'Synthesizing...' : 'Prescribe Countermeasure'}</span>
+          <Stethoscope className="w-3 h-3" />
+          <span>{prescribing ? 'Synthesizing...' : 'Prescribe Protocol'}</span>
         </button>
 
-        {/* Prescription Modal / Panel */}
+        {/* Prescription Panel */}
         {showPrescription && prescriptionText && (
-          <div className="mt-3 p-3.5 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-200 text-xs font-mono space-y-2">
-            <div className="flex items-center justify-between font-orbitron font-bold text-amber-400">
-              <span className="flex items-center gap-1.5">
-                <CheckCircle className="w-3.5 h-3.5" />
+          <div className="mt-2.5 p-3 rounded bg-amber-950/30 border border-amber-500/30 text-amber-200 text-xs font-mono space-y-1.5">
+            <div className="flex items-center justify-between font-bold text-amber-300 text-[11px]">
+              <span className="flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" />
                 <span>IBM GRANITE PROTOCOL</span>
               </span>
               <button
                 onClick={() => setShowPrescription(false)}
-                className="text-gray-400 hover:text-white text-[10px]"
+                className="text-slate-500 hover:text-slate-300 text-[10px]"
               >
                 ✕
               </button>
             </div>
-            <p className="text-[11px] leading-relaxed whitespace-pre-wrap">{prescriptionText}</p>
+            <p className="text-[11px] leading-relaxed whitespace-pre-wrap text-amber-100/90">{prescriptionText}</p>
           </div>
         )}
       </div>
