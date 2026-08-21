@@ -138,9 +138,8 @@ STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 if os.path.exists(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-@app.get("/", tags=["dashboard"])
-@app.get("/dashboard", tags=["dashboard"])
-def serve_dashboard():
+@app.get("/", tags=["hero"])
+def serve_hero():
     index_file = os.path.join(STATIC_DIR, "index.html")
     if os.path.exists(index_file):
         return FileResponse(index_file)
@@ -150,6 +149,22 @@ def serve_dashboard():
         "mock_mode": WATSONX_MOCK_MODE,
         "active_scenario": get_active_scenario(),
     }
+
+@app.get("/dashboard", tags=["dashboard"])
+def serve_dashboard():
+    dash_file = os.path.join(STATIC_DIR, "dashboard.html")
+    if os.path.exists(dash_file):
+        return FileResponse(dash_file)
+    index_file = os.path.join(STATIC_DIR, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    return {
+        "service": "AegisCrew AI",
+        "status": "operational",
+        "mock_mode": WATSONX_MOCK_MODE,
+        "active_scenario": get_active_scenario(),
+    }
+
 
 
 
