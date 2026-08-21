@@ -3,322 +3,528 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AegisCrew AI — Autonomous Deep-Space Medical Intelligence</title>
+  <title>AegisCrew AI — Deep Space Medical Intelligence</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.9/dist/lenis.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      background-color: #030610;
+      font-family: 'Space Grotesk', -apple-system, sans-serif;
+      background-color: #040508;
       color: #E2E8F0;
       background-image: 
-        linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
-      background-size: 40px 40px;
+        linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+      background-size: 32px 32px;
     }
     .font-mono { font-family: 'JetBrains Mono', monospace; }
-    .card-dark {
-      background-color: #080D1A;
-      border: 1px solid #141E33;
+    .gold-accent { color: #E5A93C; }
+    .bg-gold-accent { background-color: #E5A93C; }
+    .border-gold-accent { border-color: #E5A93C; }
+    
+    /* AstroKit reticle & technical brackets */
+    .reticle {
+      position: relative;
     }
-    .card-dark:hover {
-      border-color: #233454;
-    }
-    .grid-paper {
-      background-image: 
-        radial-gradient(rgba(56, 189, 248, 0.08) 1px, transparent 1px);
-      background-size: 24px 24px;
-    }
-    .hero-glow {
-      background: radial-gradient(circle at 50% 10%, rgba(14, 165, 233, 0.12) 0%, rgba(3, 6, 16, 0) 70%);
-    }
-    .horizon-arc {
+    .reticle::before {
+      content: '';
       position: absolute;
-      bottom: -150px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 1400px;
-      height: 400px;
-      border-radius: 50% 50% 0 0;
-      background: radial-gradient(ellipse at center top, rgba(14, 165, 233, 0.25) 0%, rgba(2, 6, 23, 0.8) 50%, rgba(3, 6, 16, 1) 80%);
-      border-top: 1px solid rgba(56, 189, 248, 0.3);
-      filter: blur(1px);
-      pointer-events: none;
-      z-index: 0;
+      top: -4px; left: -4px;
+      width: 8px; height: 8px;
+      border-top: 1px solid rgba(255,255,255,0.4);
+      border-left: 1px solid rgba(255,255,255,0.4);
     }
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: #030610; }
-    ::-webkit-scrollbar-thumb { background: #1A2438; border-radius: 2px; }
+    .reticle::after {
+      content: '';
+      position: absolute;
+      bottom: -4px; right: -4px;
+      width: 8px; height: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.4);
+      border-right: 1px solid rgba(255,255,255,0.4);
+    }
+
+    /* Concentric Radar Ring styling */
+    .radar-ring {
+      border: 1px dashed rgba(255, 255, 255, 0.12);
+      border-radius: 50%;
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .radar-ring-solid {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 50%;
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #040508; }
+    ::-webkit-scrollbar-thumb { background: #1A2234; border-radius: 2px; }
   </style>
 </head>
-<body class="min-h-screen flex flex-col antialiased relative overflow-x-hidden">
+<body class="min-h-screen flex flex-col antialiased selection:bg-[#E5A93C]/20 selection:text-[#E5A93C]">
 
-  <!-- TOP NAVIGATION BAR -->
-  <header class="border-b border-[#141E33] px-8 py-4 sticky top-0 z-50 backdrop-blur-md bg-[#030610]/80">
-    <div class="max-w-7xl mx-auto flex items-center justify-between">
+  <!-- LEFT FLOATING SOCIAL BAR -->
+  <aside class="fixed left-6 top-1/3 -translate-y-1/2 z-40 hidden xl:flex flex-col items-center space-y-6 text-xs text-slate-500 font-mono">
+    <a href="https://github.com/AmanM006/aegiscrew-ai" target="_blank" class="hover:text-white transition-colors"><i class="fa-brands fa-github text-sm"></i></a>
+    <a href="#mission" class="hover:text-white transition-colors"><i class="fa-solid fa-satellite-dish text-xs"></i></a>
+    <a href="#architecture" class="hover:text-white transition-colors"><i class="fa-solid fa-dna text-xs"></i></a>
+    <a href="#universe" class="hover:text-white transition-colors"><i class="fa-solid fa-circle-nodes text-xs"></i></a>
+    <div class="w-[1px] h-12 bg-slate-800"></div>
+  </aside>
+
+  <!-- TOP HEADER / NAV -->
+  <header class="w-full px-8 py-6 z-50">
+    <div class="max-w-[1440px] mx-auto flex items-center justify-between">
+      
+      <!-- Brand Logo Pill -->
       <div class="flex items-center space-x-3">
-        <div class="w-8 h-8 rounded-lg bg-sky-950/70 border border-sky-500/30 flex items-center justify-center text-sky-400">
-          <i class="fa-solid fa-satellite text-sm"></i>
+        <div class="w-9 h-9 rounded-full border border-slate-700 flex items-center justify-center text-xs font-mono font-bold tracking-tighter text-slate-200">
+          Aegis
         </div>
-        <div class="flex items-center space-x-2">
-          <span class="font-mono font-bold text-white text-sm tracking-tight">AEGISCREW</span>
-          <span class="font-mono font-semibold text-sky-400 text-sm">AI</span>
-          <span class="px-1.5 py-0.5 text-[9px] rounded bg-slate-800 border border-slate-700 text-slate-300 font-mono font-medium ml-1">IBM BOB 2026</span>
-        </div>
+        <span class="text-xs font-mono text-slate-400 tracking-wider">AEGISCREW <span class="text-white font-semibold">AI</span></span>
       </div>
 
-      <nav class="hidden md:flex items-center space-x-8 text-xs font-mono text-slate-400">
-        <a href="#mission" class="hover:text-slate-200 transition-colors">01. CHALLENGE</a>
-        <a href="#architecture" class="hover:text-slate-200 transition-colors">02. ARCHITECTURE</a>
-        <a href="#digital-twins" class="hover:text-slate-200 transition-colors">03. DIGITAL TWINS</a>
-        <a href="#ibm-granite" class="hover:text-slate-200 transition-colors">04. IBM GRANITE 3.0</a>
+      <!-- Center Nav Links -->
+      <nav class="hidden md:flex items-center space-x-8 text-[11px] font-mono tracking-widest text-slate-400 uppercase">
+        <a href="#about" class="hover:text-slate-200 transition-colors">AEGISCREW EXPLAINED</a>
+        <a href="#digital-twins" class="hover:text-slate-200 transition-colors">CREW DIGITAL TWINS</a>
+        <a href="#universe" class="hover:text-slate-200 transition-colors">RADAR CONSTELLATION</a>
+        <a href="#terminology" class="hover:text-slate-200 transition-colors">TERMINOLOGY</a>
       </nav>
 
-      <div class="flex items-center space-x-4">
-        <a href="/dashboard" class="px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-mono font-bold text-xs flex items-center space-x-2 transition-all shadow-md shadow-sky-950">
-          <span>Launch Mission Control</span>
-          <i class="fa-solid fa-arrow-right text-[10px]"></i>
+      <!-- Right Action CTA -->
+      <div>
+        <a href="/dashboard" class="px-3.5 py-1.5 rounded-sm border border-slate-700 hover:border-slate-400 bg-slate-900/60 hover:bg-slate-800 text-[10px] font-mono font-medium tracking-widest text-slate-200 uppercase transition-all">
+          ENTER MISSION CONTROL
         </a>
       </div>
+
     </div>
   </header>
 
-  <!-- HERO SECTION -->
-  <section class="hero-glow pt-20 pb-28 px-6 relative z-10">
-    <div class="max-w-6xl mx-auto text-center space-y-8">
-      
-      <!-- Top Pill -->
-      <div class="inline-flex items-center space-x-2.5 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-700 text-xs font-mono text-slate-300">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span>NASA-STD-3001 Grounded · Autonomous On-Board Chief Medical Officer</span>
-      </div>
-
-      <!-- Main Headline -->
-      <div class="space-y-4 max-w-4xl mx-auto">
-        <h1 class="text-4xl sm:text-6xl font-bold tracking-tight text-white font-mono leading-tight">
-          AUTONOMOUS CREW MEDICINE FOR DEEP SPACE
-        </h1>
-        <p class="text-base sm:text-lg text-slate-400 font-sans max-w-3xl mx-auto leading-relaxed">
-          Earth is 22 minutes away by radio. When a solar storm strikes or life support scrubbers fail on the way to Mars, Earth ground surgeons cannot react in time. <strong class="text-slate-200">AegisCrew AI</strong> bridges the blackout with IBM Granite 3.0.
-        </p>
-      </div>
-
-      <!-- Hero Action Buttons -->
-      <div class="flex flex-wrap justify-center items-center gap-4 pt-2">
-        <a href="/dashboard" class="px-6 py-3.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-mono font-bold text-sm flex items-center space-x-2 transition-all shadow-lg shadow-sky-950/80">
-          <i class="fa-solid fa-satellite-dish mr-1"></i>
-          <span>ENTER MISSION CONTROL CENTER</span>
-          <i class="fa-solid fa-arrow-right text-xs ml-1"></i>
-        </a>
-        <a href="https://github.com/AmanM006/aegiscrew-ai" target="_blank" class="px-6 py-3.5 rounded-lg bg-[#080D1A] border border-[#1E293B] hover:border-slate-500 text-slate-200 font-mono text-sm flex items-center space-x-2 transition-all">
-          <i class="fa-brands fa-github text-base"></i>
-          <span>View GitHub Repository</span>
-        </a>
-      </div>
-
-      <!-- Key Metrics Strip -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto pt-10 text-left">
-        <div class="card-dark p-4 rounded-lg">
-          <div class="text-[10px] text-slate-500 font-mono uppercase tracking-wider">Mission Target</div>
-          <div class="text-base font-bold text-white font-mono mt-1">Artemis Mars Transit</div>
-          <div class="text-[11px] text-slate-400 mt-0.5">Deep Space Habitat (MET 142)</div>
-        </div>
-        <div class="card-dark p-4 rounded-lg">
-          <div class="text-[10px] text-slate-500 font-mono uppercase tracking-wider">Comms Blackout</div>
-          <div class="text-base font-bold text-amber-400 font-mono mt-1">1,200s (20.0 min)</div>
-          <div class="text-[11px] text-slate-400 mt-0.5">One-way speed of light lag</div>
-        </div>
-        <div class="card-dark p-4 rounded-lg">
-          <div class="text-[10px] text-slate-500 font-mono uppercase tracking-wider">Clinical AI Engine</div>
-          <div class="text-base font-bold text-sky-400 font-mono mt-1">IBM Granite 3.0</div>
-          <div class="text-[11px] text-slate-400 mt-0.5">NASA SP-2010-3407 RAG</div>
-        </div>
-        <div class="card-dark p-4 rounded-lg">
-          <div class="text-[10px] text-slate-500 font-mono uppercase tracking-wider">Bio-Telemetry Data</div>
-          <div class="text-base font-bold text-emerald-400 font-mono mt-1">1,440 NASA Frames</div>
-          <div class="text-[11px] text-slate-400 mt-0.5">NASA-STD-3001 Baselines</div>
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- INTERACTIVE ORBITAL CONSTELLATION & TELEMETRY PREVIEW -->
-  <section class="py-12 px-6 relative z-10 border-t border-[#141E33] bg-[#050914]">
-    <div class="max-w-6xl mx-auto space-y-6">
-      <div class="flex flex-wrap justify-between items-end gap-4 border-b border-[#141E33] pb-4">
-        <div>
-          <span class="text-xs font-mono text-sky-400 uppercase tracking-widest">LIVE DIGITAL TWIN RADAR</span>
-          <h2 class="text-xl sm:text-2xl font-bold font-mono text-white mt-1">Artemis II-M Crew Multi-Stream Telemetry</h2>
-        </div>
-        <a href="/dashboard" class="text-xs font-mono text-sky-400 hover:text-sky-300 flex items-center space-x-1">
-          <span>Open Full Interactive Telemetry Console</span>
-          <i class="fa-solid fa-arrow-right text-[10px]"></i>
-        </a>
-      </div>
-
-      <!-- 4-Crew Quick Matrix -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="card-dark p-4 rounded-lg space-y-3">
-          <div class="flex justify-between items-start">
-            <div>
-              <span class="text-[9px] font-mono text-slate-500 uppercase">ASTRO-01 · CDR</span>
-              <h3 class="font-bold text-white text-xs font-mono">Commander Elena Vance</h3>
-            </div>
-            <span class="px-1.5 py-0.5 text-[9px] font-mono font-bold rounded bg-emerald-950 border border-emerald-500/30 text-emerald-400">99.0%</span>
-          </div>
-          <div class="space-y-1 text-[11px] font-mono text-slate-400">
-            <div class="flex justify-between"><span>HRV RMSSD:</span> <strong class="text-slate-200">62.0 ms</strong></div>
-            <div class="flex justify-between"><span>Sleep Debt:</span> <strong class="text-slate-200">0.0 hrs</strong></div>
-            <div class="flex justify-between"><span>Status:</span> <strong class="text-emerald-400">NOMINAL</strong></div>
-          </div>
-        </div>
-
-        <div class="card-dark p-4 rounded-lg space-y-3 border-red-500/30 bg-red-950/10">
-          <div class="flex justify-between items-start">
-            <div>
-              <span class="text-[9px] font-mono text-slate-500 uppercase">ASTRO-02 · ENG</span>
-              <h3 class="font-bold text-white text-xs font-mono">Mark Jensen</h3>
-            </div>
-            <span class="px-1.5 py-0.5 text-[9px] font-mono font-bold rounded bg-red-950 border border-red-500/40 text-red-400">45.0%</span>
-          </div>
-          <div class="space-y-1 text-[11px] font-mono text-slate-400">
-            <div class="flex justify-between"><span>Radiation Flux:</span> <strong class="text-red-400">87.4 mGy</strong></div>
-            <div class="flex justify-between"><span>SPE Alert:</span> <strong class="text-red-400">EMERGENCY</strong></div>
-            <div class="flex justify-between"><span>Status:</span> <strong class="text-red-400">EVA ABORT</strong></div>
-          </div>
-        </div>
-
-        <div class="card-dark p-4 rounded-lg space-y-3">
-          <div class="flex justify-between items-start">
-            <div>
-              <span class="text-[9px] font-mono text-slate-500 uppercase">ASTRO-03 · MED</span>
-              <h3 class="font-bold text-white text-xs font-mono">Dr. Marcus Thorne</h3>
-            </div>
-            <span class="px-1.5 py-0.5 text-[9px] font-mono font-bold rounded bg-emerald-950 border border-emerald-500/30 text-emerald-400">95.8%</span>
-          </div>
-          <div class="space-y-1 text-[11px] font-mono text-slate-400">
-            <div class="flex justify-between"><span>HRV RMSSD:</span> <strong class="text-slate-200">51.2 ms</strong></div>
-            <div class="flex justify-between"><span>SpO₂:</span> <strong class="text-slate-200">98.2%</strong></div>
-            <div class="flex justify-between"><span>Status:</span> <strong class="text-emerald-400">NOMINAL</strong></div>
-          </div>
-        </div>
-
-        <div class="card-dark p-4 rounded-lg space-y-3">
-          <div class="flex justify-between items-start">
-            <div>
-              <span class="text-[9px] font-mono text-slate-500 uppercase">ASTRO-04 · SCI</span>
-              <h3 class="font-bold text-white text-xs font-mono">Sara Lin</h3>
-            </div>
-            <span class="px-1.5 py-0.5 text-[9px] font-mono font-bold rounded bg-emerald-950 border border-emerald-500/30 text-emerald-400">99.0%</span>
-          </div>
-          <div class="space-y-1 text-[11px] font-mono text-slate-400">
-            <div class="flex justify-between"><span>HRV RMSSD:</span> <strong class="text-slate-200">68.0 ms</strong></div>
-            <div class="flex justify-between"><span>PVT Reaction:</span> <strong class="text-slate-200">213 ms</strong></div>
-            <div class="flex justify-between"><span>Status:</span> <strong class="text-emerald-400">NOMINAL</strong></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 4 ARCHITECTURAL PILLARS (ASTROKIT NUMBERING STYLE) -->
-  <section id="architecture" class="py-20 px-6 max-w-6xl mx-auto space-y-16 relative z-10">
+  <!-- HERO SECTION (ASTROKIT STYLE) -->
+  <section class="max-w-[1440px] mx-auto px-8 pt-8 pb-24 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative">
     
-    <div class="text-center space-y-2 max-w-2xl mx-auto">
-      <span class="text-xs font-mono text-sky-400 uppercase tracking-widest">TECHNICAL SPECIFICATION</span>
-      <h2 class="text-2xl sm:text-3xl font-bold font-mono text-white">The Four Pillars of Deep-Space AI Medicine</h2>
-      <p class="text-xs sm:text-sm text-slate-400 font-sans">Engineered with IBM Bob for the AI Builders Challenge (August 2026).</p>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <!-- Hero Left Column -->
+    <div class="lg:col-span-6 space-y-8 z-10">
       
-      <!-- 01 -->
-      <div class="card-dark p-6 rounded-xl space-y-4">
-        <div class="flex items-center justify-between border-b border-[#141E33] pb-3">
-          <span class="font-mono text-2xl font-black text-sky-400">01</span>
-          <span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">PHYSIOLOGY CORE</span>
-        </div>
-        <h3 class="text-base font-bold font-mono text-white">NASA-STD-3001 Bio-Telemetry Digital Twins</h3>
-        <p class="text-xs text-slate-400 leading-relaxed">
-          Ingests continuous 5-minute telemetry across 8 vital streams: Heart Rate, HRV RMSSD (autonomic nervous tone), SpO₂, Core Body Temp, Sleep Debt accumulation, Ambient CO₂ concentration, and PVT reaction latency.
+      <div class="space-y-4">
+        <h1 class="text-4xl sm:text-5xl font-light tracking-tight text-white leading-tight">
+          Welcome to <span class="gold-accent font-normal">AegisCrew</span>
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-lg font-light">
+          From the beginning of spaceflight, ground controllers have watched over astronauts from Earth. As Artemis ventures to Mars across 22-minute communication blackouts, autonomous medical intelligence must stand watch.
         </p>
-        <div class="p-2.5 rounded bg-[#030610] border border-[#141E33] text-[11px] font-mono text-slate-400">
-          Baseline Constraints: NASA Human Integration Design Handbook (HIDH)
+        <p class="text-[11px] text-slate-500 font-mono">
+          Continuous bio-telemetry surveillance and clinical countermeasure synthesis with IBM Granite 3.0.
+        </p>
+      </div>
+
+      <!-- CTAs -->
+      <div class="flex items-center space-x-6 pt-2">
+        <a href="/dashboard" class="px-5 py-2.5 rounded-sm border border-slate-700 bg-slate-900 hover:bg-slate-800 text-xs font-mono text-slate-200 tracking-wider uppercase flex items-center space-x-2.5 transition-all shadow-sm">
+          <i class="fa-solid fa-satellite text-[11px] text-slate-400"></i>
+          <span>START NOW</span>
+        </a>
+        <a href="#about" class="text-xs font-mono tracking-wider text-slate-400 hover:text-white uppercase transition-colors">
+          LEARN MORE
+        </a>
+      </div>
+
+      <!-- NASA / IBM Lockup -->
+      <div class="pt-8 flex items-center space-x-4">
+        <div class="w-10 h-10 rounded-full bg-blue-950/80 border border-blue-600/40 flex items-center justify-center p-1">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/e/e5/NASA_logo.svg" alt="NASA" class="w-8 h-8 object-contain">
+        </div>
+        <div class="text-[10px] font-mono leading-tight text-slate-400">
+          <div class="font-bold text-slate-200">POWERED BY NASA OSDR</div>
+          <div>NASA-STD-3001 &amp; IBM watsonx.ai</div>
         </div>
       </div>
 
-      <!-- 02 -->
-      <div class="card-dark p-6 rounded-xl space-y-4">
-        <div class="flex items-center justify-between border-b border-[#141E33] pb-3">
-          <span class="font-mono text-2xl font-black text-sky-400">02</span>
-          <span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">MATHEMATICAL MODELS</span>
+    </div>
+
+    <!-- Hero Right Column: Technical Celestial / Habitat Reticle View -->
+    <div class="lg:col-span-6 relative flex items-center justify-center min-h-[420px]">
+      
+      <!-- Coordinate Reticles (AstroKit Style) -->
+      <div class="absolute top-4 left-6 text-[10px] font-mono text-slate-500 reticle p-2">
+        <div>2345.3256</div>
+        <div class="text-slate-600">2043.3298</div>
+      </div>
+
+      <div class="absolute top-12 right-10 text-[10px] font-mono text-slate-500 reticle p-2">
+        <div>7741.9701</div>
+        <div class="text-slate-600">1146.3312</div>
+      </div>
+
+      <!-- Central Floating Celestial Body / Asteroid / Habitat Wireframe -->
+      <div class="relative w-72 h-72 rounded-full overflow-hidden shadow-2xl border border-slate-800/80 bg-radial from-slate-900 to-black">
+        <img 
+          src="https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?q=80&w=600&auto=format&fit=crop" 
+          alt="Mars Surface Celestial" 
+          class="w-full h-full object-cover opacity-90 filter contrast-125 brightness-95"
+        >
+        <!-- Overlay technical target circles -->
+        <div class="absolute inset-0 border border-white/10 rounded-full"></div>
+        <div class="absolute inset-4 border border-dashed border-white/20 rounded-full"></div>
+      </div>
+
+      <!-- Secondary floating small moon -->
+      <div class="absolute top-8 right-4 w-16 h-16 rounded-full overflow-hidden border border-slate-700 shadow-xl hidden sm:block">
+        <img 
+          src="https://images.unsplash.com/photo-1532693322450-2cb5c511067d?q=80&w=200&auto=format&fit=crop" 
+          alt="Phobos Moon" 
+          class="w-full h-full object-cover grayscale opacity-80"
+        >
+      </div>
+
+      <!-- Bottom Right Galaxy Card -->
+      <div class="absolute bottom-4 right-8 flex items-center space-x-3 card-dark p-2 rounded-sm border border-slate-800/90 shadow-lg">
+        <div class="w-10 h-10 rounded-sm overflow-hidden">
+          <img 
+            src="https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=200&auto=format&fit=crop" 
+            alt="Galaxy" 
+            class="w-full h-full object-cover"
+          >
         </div>
-        <h3 class="text-base font-bold font-mono text-white">Three-Pillar Risk Engine &amp; Fatigue Scoring</h3>
-        <p class="text-xs text-slate-400 leading-relaxed">
-          Real-time deterministic composite scoring combining Fatigue Risk \(F(t)\), Autonomic Tone Strain \(\Delta \text{HRV}\), and Cumulative Solar Particle Flux \(\int D(t)dt\). Generates instant Traffic Light states (GREEN / AMBER / RED) for mission controllers.
-        </p>
-        <div class="p-2.5 rounded bg-[#030610] border border-[#141E33] text-[11px] font-mono text-slate-400">
-          Deterministic Rule Safeguards: Zero AI hallucinations on critical thresholds
+        <div class="text-[9px] font-mono pr-2">
+          <div class="text-slate-300 font-bold uppercase tracking-wider">DEEP SPACE TELEMETRY</div>
+          <div class="text-slate-500">22-MIN MARS DELAY</div>
         </div>
       </div>
 
-      <!-- 03 -->
-      <div class="card-dark p-6 rounded-xl space-y-4">
-        <div class="flex items-center justify-between border-b border-[#141E33] pb-3">
-          <span class="font-mono text-2xl font-black text-sky-400">03</span>
-          <span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">IBM GRANITE REASONER</span>
+    </div>
+
+  </section>
+
+  <!-- SECTION 01: WHAT IS AEGISCREW AI? (EXACT ASTROKIT LAYOUT) -->
+  <section id="about" class="border-t border-[#141E33] py-24 px-8 max-w-[1440px] mx-auto">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      
+      <!-- 01 Info -->
+      <div class="lg:col-span-5 space-y-6">
+        <div class="space-y-2">
+          <div class="flex items-center space-x-2 text-slate-500">
+            <span class="font-mono text-sm">01</span>
+            <i class="fa-solid fa-diamond text-[9px] gold-accent"></i>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-light text-white tracking-tight">
+            What is <span class="gold-accent">AegisCrew AI</span>?
+          </h2>
         </div>
-        <h3 class="text-base font-bold font-mono text-white">IBM Granite 3.0 Clinical RAG &amp; SP-2010-3407</h3>
-        <p class="text-xs text-slate-400 leading-relaxed">
-          Synthesizes multi-modal flight surgeon briefings and prescribes exact clinical SOPs (*e.g., `PROT-RAD-SPE-03` storm shelter ingress, `PROT-ECLSS-CO2-02` hypercapnia oxygen flush*) cited directly from NASA Flight Surgeon manuals.
+
+        <p class="text-xs sm:text-sm text-slate-400 font-light leading-relaxed">
+          AegisCrew AI is an autonomous, on-board Chief Medical Officer engineered for deep-space missions. When solar particle storms strike or cabin life support systems degrade, AegisCrew AI detects physiological degradation in real time and synthesizes deterministic clinical interventions.
         </p>
-        <div class="p-2.5 rounded bg-[#030610] border border-[#141E33] text-[11px] font-mono text-slate-400">
-          IBM watsonx.ai Model: ibm/granite-3-8b-instruct + Local Fallback
+
+        <p class="text-xs text-slate-400 font-light leading-relaxed">
+          Powered by IBM Granite 3.0, NASA-STD-3001 baselines, and NASA SP-2010-3407 Flight Surgeon clinical protocols to ensure crew resilience without Earth ground reliance.
+        </p>
+
+        <div class="pt-2">
+          <a href="/dashboard" class="text-xs font-mono tracking-widest text-slate-300 hover:text-white uppercase flex items-center space-x-2">
+            <span>EXPLORE TELEMETRY PIPELINE</span>
+            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+          </a>
         </div>
       </div>
 
-      <!-- 04 -->
-      <div class="card-dark p-6 rounded-xl space-y-4">
-        <div class="flex items-center justify-between border-b border-[#141E33] pb-3">
-          <span class="font-mono text-2xl font-black text-sky-400">04</span>
-          <span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">MISSION SIMULATOR</span>
+      <!-- 01 Imagery Collage (AstroKit Style) -->
+      <div class="lg:col-span-7 relative min-h-[380px]">
+        
+        <!-- Large Background Space Tile -->
+        <div class="w-full h-80 rounded-sm overflow-hidden border border-slate-800 shadow-2xl relative">
+          <img 
+            src="https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?q=80&w=1000&auto=format&fit=crop" 
+            alt="Space Nebula Andromeda" 
+            class="w-full h-full object-cover brightness-90 contrast-110"
+          >
+          
+          <!-- Watch Video / Demo Overlay Pill -->
+          <a href="/dashboard" class="absolute bottom-6 left-6 flex items-center space-x-3 px-3 py-1.5 rounded-full bg-black/70 backdrop-blur-md border border-white/20 text-white text-xs font-mono hover:border-white transition-all">
+            <span class="w-5 h-5 rounded-full bg-white text-black flex items-center justify-center text-[9px]"><i class="fa-solid fa-play"></i></span>
+            <span class="text-[10px] tracking-wider uppercase">AEGISCREW IN ACTION · LIVE CONSOLE</span>
+          </a>
         </div>
-        <h3 class="text-base font-bold font-mono text-white">Deep-Space Anomaly Stress Testing</h3>
-        <p class="text-xs text-slate-400 leading-relaxed">
-          Interactive injection engine capable of generating SPE radiation jumps, ECLSS scrubber gas leaks, and chronic sleep deprivation to validate autonomous AI decision-making without waiting for 20-minute Earth communications.
+
+        <!-- Top Floating Inset James Webb Card -->
+        <div class="absolute -top-6 -left-6 w-44 h-28 rounded-sm overflow-hidden border border-slate-700 shadow-2xl hidden sm:block">
+          <img 
+            src="https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?q=80&w=400&auto=format&fit=crop" 
+            alt="Cosmic Starfield" 
+            class="w-full h-full object-cover"
+          >
+        </div>
+
+        <!-- Bottom Floating Planetary Arc Card -->
+        <div class="absolute -bottom-6 right-6 w-60 h-28 rounded-sm overflow-hidden border border-slate-700 shadow-2xl hidden sm:block">
+          <img 
+            src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=500&auto=format&fit=crop" 
+            alt="Orbital Sunrise Earth" 
+            class="w-full h-full object-cover"
+          >
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SECTION 02: HOW AUTONOMOUS MEDICINE PROTECTS CREWS (SILHOUETTE HORIZON) -->
+  <section class="border-t border-[#141E33] relative overflow-hidden bg-black">
+    
+    <!-- Horizon Background Image with Silhouette -->
+    <div class="relative min-h-[480px] flex items-center justify-center px-8 py-20">
+      
+      <img 
+        src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1600&auto=format&fit=crop" 
+        alt="Astronomy Silhouette Horizon" 
+        class="absolute inset-0 w-full h-full object-cover opacity-35 filter contrast-125"
+      >
+      <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black"></div>
+
+      <!-- Centered Content -->
+      <div class="relative z-10 max-w-2xl text-center space-y-6">
+        
+        <div class="flex items-center justify-center space-x-2 text-slate-500">
+          <span class="font-mono text-sm">02</span>
+          <i class="fa-solid fa-circle-notch text-[10px] gold-accent"></i>
+        </div>
+
+        <h2 class="text-3xl sm:text-4xl font-light text-white tracking-tight">
+          How Autonomous AI Protects <span class="gold-accent">Deep-Space Crews</span>
+        </h2>
+
+        <p class="text-xs sm:text-sm text-slate-300 font-light leading-relaxed max-w-lg mx-auto">
+          Every 5 minutes, 8 bio-telemetry streams from all 4 astronauts are evaluated against NASA flight medical limits. When autonomic tone collapses or radiation surges, clinical protocols are synthesized before cognitive exhaustion sets in.
         </p>
-        <div class="p-2.5 rounded bg-[#030610] border border-[#141E33] text-[11px] font-mono text-slate-400">
-          Zero-Competition Category: 100% Unique in August Hackathon
+
+        <!-- Bottom Mini CTA -->
+        <div class="pt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <span class="text-xs font-mono text-slate-400">Are you ready to simulate?</span>
+          <a href="/dashboard" class="px-5 py-2 rounded-sm border border-slate-700 bg-white text-black font-mono font-bold text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">
+            START NOW
+          </a>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SECTION 03: THE UNIVERSE OF AEGISCREW (CONCENTRIC RADAR ORBIT RING) -->
+  <section id="universe" class="border-t border-[#141E33] py-28 px-8 max-w-[1440px] mx-auto">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+      
+      <!-- Left 8 Cols: Concentric Radar Constellation -->
+      <div class="lg:col-span-8 space-y-6">
+        
+        <div class="space-y-2">
+          <h2 class="text-2xl sm:text-3xl font-light text-white tracking-tight">
+            The Universe of <span class="gold-accent">AegisCrew</span>
+          </h2>
+          <p class="text-xs text-slate-400 font-light max-w-md">
+            Interactive multi-modal intelligence mesh interconnecting physiological sensors, ML risk models, and IBM Granite RAG.
+          </p>
+        </div>
+
+        <!-- Radar Canvas Container -->
+        <div class="relative w-full h-[480px] flex items-center justify-center overflow-hidden card-dark rounded-sm border border-slate-800">
+          
+          <!-- Outer Ring -->
+          <div class="radar-ring-solid w-[420px] h-[420px]"></div>
+          <!-- Middle Ring -->
+          <div class="radar-ring w-[300px] h-[300px]"></div>
+          <!-- Inner Ring -->
+          <div class="radar-ring-solid w-[180px] h-[180px]"></div>
+
+          <!-- Central AegisCrew AI Core -->
+          <div class="relative z-10 w-20 h-20 rounded-full border border-slate-500 bg-black flex flex-col items-center justify-center text-center p-1 shadow-2xl">
+            <span class="text-[10px] font-mono font-bold text-white tracking-tighter">AegisCrew</span>
+            <span class="text-[8px] font-mono text-sky-400">CORE</span>
+          </div>
+
+          <!-- Node 1: Autonomic Tone (Top) -->
+          <div class="absolute top-8 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-1">
+            <div class="w-8 h-8 rounded-full border border-slate-700 bg-slate-900 flex items-center justify-center text-sky-400 text-xs shadow-md">
+              <i class="fa-solid fa-heart-pulse"></i>
+            </div>
+            <span class="text-[9px] font-mono text-slate-400 uppercase">HRV RMSSD</span>
+          </div>
+
+          <!-- Node 2: Radiation Dosimeter (Right) -->
+          <div class="absolute top-1/2 right-12 -translate-y-1/2 flex flex-col items-center space-y-1">
+            <div class="w-8 h-8 rounded-full border border-slate-700 bg-slate-900 flex items-center justify-center text-amber-400 text-xs shadow-md">
+              <i class="fa-solid fa-radiation"></i>
+            </div>
+            <span class="text-[9px] font-mono text-slate-400 uppercase">SPE FLUX</span>
+          </div>
+
+          <!-- Node 3: IBM Granite 3.0 (Bottom) -->
+          <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-1">
+            <div class="w-8 h-8 rounded-full border border-slate-700 bg-slate-900 flex items-center justify-center text-emerald-400 text-xs shadow-md">
+              <i class="fa-solid fa-brain"></i>
+            </div>
+            <span class="text-[9px] font-mono text-slate-400 uppercase">IBM GRANITE</span>
+          </div>
+
+          <!-- Node 4: Cabin Atmosphere (Left) -->
+          <div class="absolute top-1/2 left-12 -translate-y-1/2 flex flex-col items-center space-y-1">
+            <div class="w-8 h-8 rounded-full border border-slate-700 bg-slate-900 flex items-center justify-center text-purple-400 text-xs shadow-md">
+              <i class="fa-solid fa-lungs"></i>
+            </div>
+            <span class="text-[9px] font-mono text-slate-400 uppercase">ECLSS CO₂</span>
+          </div>
+
+          <!-- Node 5: Circadian Sleep (Top Right) -->
+          <div class="absolute top-24 right-28 flex flex-col items-center space-y-1">
+            <div class="w-7 h-7 rounded-full border border-slate-800 bg-black flex items-center justify-center text-indigo-400 text-[10px]">
+              <i class="fa-solid fa-bed"></i>
+            </div>
+            <span class="text-[8px] font-mono text-slate-500">PVT LAG</span>
+          </div>
+
+          <!-- Node 6: Clinical Protocols (Bottom Left) -->
+          <div class="absolute bottom-24 left-28 flex flex-col items-center space-y-1">
+            <div class="w-7 h-7 rounded-full border border-slate-800 bg-black flex items-center justify-center text-amber-300 text-[10px]">
+              <i class="fa-solid fa-file-medical"></i>
+            </div>
+            <span class="text-[8px] font-mono text-slate-500">SP-2010-3407</span>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Right 4 Cols: Terminology & Standards List (AstroKit Style) -->
+      <div id="terminology" class="lg:col-span-4 space-y-6 pt-2">
+        <h3 class="text-sm font-mono tracking-widest text-white uppercase border-b border-slate-800 pb-3">
+          TERMINOLOGY &amp; STANDARDS
+        </h3>
+
+        <div class="space-y-4 text-xs font-mono">
+          <div class="border-l-2 border-amber-500/80 pl-3 space-y-1">
+            <a href="/dashboard" class="text-slate-200 hover:text-white font-semibold flex items-center justify-between">
+              <span>NASA-STD-3001</span>
+              <i class="fa-solid fa-angle-right text-[10px] text-slate-500"></i>
+            </a>
+            <p class="text-[11px] text-slate-500 font-sans">Space Flight Human-System Standard for crew vitals &amp; environmental safety.</p>
+          </div>
+
+          <div class="border-l-2 border-slate-800 hover:border-slate-600 pl-3 space-y-1 transition-colors">
+            <a href="/dashboard" class="text-slate-300 hover:text-white flex items-center justify-between">
+              <span>NASA SP-2010-3407</span>
+              <i class="fa-solid fa-angle-right text-[10px] text-slate-500"></i>
+            </a>
+            <p class="text-[11px] text-slate-500 font-sans">Flight Surgeon Medical Checklist &amp; Clinical Countermeasure Protocols.</p>
+          </div>
+
+          <div class="border-l-2 border-slate-800 hover:border-slate-600 pl-3 space-y-1 transition-colors">
+            <a href="/dashboard" class="text-slate-300 hover:text-white flex items-center justify-between">
+              <span>IBM watsonx.ai Granite 3.0</span>
+              <i class="fa-solid fa-angle-right text-[10px] text-slate-500"></i>
+            </a>
+            <p class="text-[11px] text-slate-500 font-sans">8B-parameter instruct enterprise LLM for clinical RAG countermeasure synthesis.</p>
+          </div>
+
+          <div class="border-l-2 border-slate-800 hover:border-slate-600 pl-3 space-y-1 transition-colors">
+            <a href="/dashboard" class="text-slate-300 hover:text-white flex items-center justify-between">
+              <span>NASA OSDR Data</span>
+              <i class="fa-solid fa-angle-right text-[10px] text-slate-500"></i>
+            </a>
+            <p class="text-[11px] text-slate-500 font-sans">Open Science Data Repository physiological and radiation timeseries dataset.</p>
+          </div>
         </div>
       </div>
 
     </div>
   </section>
 
-  <!-- CTA FOOTER STRIP -->
-  <section class="py-20 px-6 border-t border-[#141E33] bg-[#02050E] relative z-10 text-center space-y-6">
-    <h2 class="text-2xl sm:text-3xl font-bold font-mono text-white">Ready to Inspect the Mission Telemetry?</h2>
-    <p class="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto">
-      Experience live 4-astronaut digital twins, 24-hour physiological telemetry curves, and IBM Granite AI clinical decision support.
-    </p>
-    <div>
-      <a href="/dashboard" class="inline-flex items-center space-x-2 px-8 py-3.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-mono font-bold text-sm shadow-xl shadow-sky-950 transition-all">
-        <span>Launch Mission Control Console</span>
-        <i class="fa-solid fa-arrow-right text-xs"></i>
-      </a>
+  <!-- SECTION 04: SCIENCE BEHIND AEGISCREW WITH HORIZONTAL TABS -->
+  <section class="border-t border-[#141E33] py-24 px-8 max-w-[1440px] mx-auto space-y-12">
+    
+    <div class="space-y-3">
+      <h2 class="text-2xl sm:text-3xl font-light text-white tracking-tight">
+        The science and data behind <span class="gold-accent">AegisCrew</span> travels way beyond the stars.
+      </h2>
+      <p class="text-xs sm:text-sm text-slate-400 font-light max-w-xl">
+        Deterministic physiological mathematical models combined with enterprise generative AI reasoning to protect deep-space human life.
+      </p>
     </div>
+
+    <!-- 3 Horizontal Tabs (AstroKit Style) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 border-b border-slate-800 pb-4">
+      <div class="space-y-1 cursor-pointer">
+        <div class="text-[10px] font-mono text-slate-500 uppercase">01</div>
+        <div class="flex items-center space-x-2 text-xs font-mono text-slate-400">
+          <i class="fa-solid fa-check text-[10px]"></i>
+          <span>POTENTIAL APPLICATIONS</span>
+        </div>
+      </div>
+
+      <div class="space-y-1 cursor-pointer">
+        <div class="text-[10px] font-mono text-slate-500 uppercase">02</div>
+        <div class="flex items-center space-x-2 text-xs font-mono text-slate-400">
+          <i class="fa-solid fa-sliders text-[10px]"></i>
+          <span>KEY COMPONENTS</span>
+        </div>
+      </div>
+
+      <div class="space-y-1 border-b-2 border-amber-500 pb-2">
+        <div class="text-[10px] font-mono text-amber-400 uppercase">03</div>
+        <div class="flex items-center space-x-2 text-xs font-mono text-white font-bold">
+          <i class="fa-solid fa-sun text-[10px] gold-accent"></i>
+          <span>USING AEGISCREW ON MARS</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Content Block -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center card-dark p-6 rounded-sm border border-slate-800">
+      <div class="lg:col-span-7 h-64 rounded-sm overflow-hidden border border-slate-700">
+        <img 
+          src="https://images.unsplash.com/photo-1543722530-d2c3201371e7?q=80&w=800&auto=format&fit=crop" 
+          alt="Deep Space Nebulae" 
+          class="w-full h-full object-cover"
+        >
+      </div>
+
+      <div class="lg:col-span-5 space-y-4">
+        <h3 class="text-base font-mono text-white font-semibold">Autonomous Deep Space Intervention</h3>
+        <p class="text-xs text-slate-400 font-light leading-relaxed">
+          When an anomaly is flagged, AegisCrew AI generates a clinical flight brief and issues exact pharmacological, EVA restriction, or shelter orders directly to the Mars crew without delay.
+        </p>
+        <a href="/dashboard" class="inline-block text-xs font-mono text-amber-400 hover:text-amber-300 uppercase tracking-wider pt-2">
+          LAUNCH LIVE MISSION CONTROL →
+        </a>
+      </div>
+    </div>
+
   </section>
 
-  <!-- FOOTER -->
-  <footer class="border-t border-[#141E33] py-6 px-8 text-center text-xs text-slate-500 font-mono bg-[#030610]">
-    <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4">
-      <div>AegisCrew AI · Built with IBM Bob for the AI Builders Challenge 2026</div>
-      <div>Powered by IBM watsonx.ai &amp; Granite 3.0 · NASA-STD-3001</div>
+  <!-- FOOTER (ASTROKIT STYLE) -->
+  <footer class="border-t border-[#141E33] py-10 px-8 bg-[#020306] text-slate-500 font-mono text-[11px]">
+    <div class="max-w-[1440px] mx-auto flex flex-wrap justify-between items-center gap-6">
+      
+      <div class="flex items-center space-x-3">
+        <div class="flex items-center space-x-1.5">
+          <span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+        </div>
+        <span class="text-slate-300 font-bold tracking-wider uppercase">AEGISCREW AI</span>
+        <span class="text-slate-600">|</span>
+        <span class="text-slate-500">Designed for IBM Bob AI Builders Challenge</span>
+      </div>
+
+      <div class="text-slate-600 text-[10px]">
+        © 2026 AegisCrew AI · Grounded in NASA-STD-3001 &amp; SP-2010-3407
+      </div>
+
     </div>
   </footer>
 
