@@ -1,0 +1,52 @@
+{
+  "protocols": [
+    {
+      "id": "PROT-CIRCADIAN-01",
+      "category": "Circadian & Sleep Debt",
+      "condition": "Sleep debt > 4.5 hrs OR Circadian phase shift > 2.0 hrs",
+      "title": "NASA Blue-Enriched Phototherapy & Chronobiological Resequencing",
+      "clinical_action": "Prescribe 10,000-lux blue-enriched (460-480nm) light therapy for 45 minutes immediately upon waking (06:00-06:45 UTC). Restrict caffeine 6 hours prior to sleep. Enforce a 60-minute sleep sanctuary blackout protocol.",
+      "operational_impact": "Postpone high-risk EVA operations by 24 hours. Delegate manual robotics to secondary crew member.",
+      "citations": [
+        "NASA SP-2010-3407 Sec 5.2",
+        "Flynn-Evans et al., npj Microgravity 2021"
+      ]
+    },
+    {
+      "id": "PROT-CO2-HYPERCAPNIA-02",
+      "category": "Environmental / Hypercapnia",
+      "condition": "Ambient CO2 > 4500 ppm OR SpO2 < 93% with elevated resting HR",
+      "title": "ECLSS Carbon Dioxide Scrubbing Override & Acute Oxygen Enrichment",
+      "clinical_action": "Initiate auxiliary Amine Swing Bed (ASB) scrubber cycling. Increase cabin ventilation blower to 120% nominal. Administer supplemental 28% O2 via nasal cannula for 30 minutes if headache reported.",
+      "operational_impact": "Hold physical resistive exercise in module until ambient CO2 stabilizes below 3000 ppm.",
+      "citations": [
+        "NASA-STD-3001 Vol 2 Sec 6.2.2",
+        "Law et al., J. Occup. Environ. Med. 2014"
+      ]
+    },
+    {
+      "id": "PROT-RAD-SPE-03",
+      "category": "Radiation Protection",
+      "condition": "Daily Radiation Flux > 10.0 mGy/day OR Active Solar Particle Event (SPE)",
+      "title": "Storm Shelter Emergency Ingress & Pharmacological Radioprotection",
+      "clinical_action": "Immediate termination of all EVA activities. Ingress into central water-wall reinforced radiation storm shelter. Initiate oral antioxidant / radioprotective micronutrient regimen (alpha-tocopherol, selenium, NAC).",
+      "operational_impact": "All external payload maintenance halted. Continuous active dosimeter monitoring engaged.",
+      "citations": [
+        "NASA Space Radiation Cancer Risk Model (NSCR-2020)",
+        "Cucinotta et al., Life Sci Space Res 2017"
+      ]
+    },
+    {
+      "id": "PROT-CARDIO-STRESS-04",
+      "category": "Cardiovascular Deconditioning & Autonomic Stress",
+      "condition": "HRV RMSSD < 25 ms AND Resting HR > 25% above baseline",
+      "title": "Autonomic Tone Recovery & Fluid Loading Protocol",
+      "clinical_action": "Prescribe 1.0 L electrolyte isotonic fluid rehydration with 0.9g sodium chloride equivalent. Prescribe 20 minutes structured biofeedback diaphragmatic breathing at 0.1 Hz resonance frequency.",
+      "operational_impact": "Downscale high-g maneuver readiness. Re-evaluate blood pressure profile.",
+      "citations": [
+        "NASA LSDA Cardiovascular Microgravity Archives",
+        "Hughson et al., J. Appl. Physiol 2016"
+      ]
+    }
+  ]
+}

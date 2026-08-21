@@ -14,13 +14,18 @@ from pathlib import Path
 BACKEND_DIR = Path(__file__).resolve().parent.parent   # aegiscrew-ai/backend/
 REPO_ROOT   = BACKEND_DIR.parent                       # aegiscrew-ai/
 
-# Real NASA data lives in the workspace-root data/ folder (one level above aegiscrew-ai/)
-WORKSPACE_ROOT = REPO_ROOT.parent
-DATA_DIR = WORKSPACE_ROOT / "data"
+# Real NASA data lives in data/ inside repository (or workspace parent)
+if (REPO_ROOT / "data").exists():
+    DATA_DIR = REPO_ROOT / "data"
+elif (WORKSPACE_ROOT / "data").exists():
+    DATA_DIR = WORKSPACE_ROOT / "data"
+else:
+    DATA_DIR = BACKEND_DIR / "data"
 
 NASA_BIOMETRICS_PATH = DATA_DIR / "nasa_osdr" / "nasa_crew_biometrics_reference.json"
 NASA_PROTOCOLS_PATH  = DATA_DIR / "clinical_protocols" / "nasa_flight_surgeon_protocols.json"
 NASA_TIMESERIES_PATH = DATA_DIR / "nasa_osdr" / "nasa_iss_timeseries_dataset.csv"
+
 
 # ---------------------------------------------------------------------------
 # IBM watsonx.ai credentials  (optional — falls back to mock mode)

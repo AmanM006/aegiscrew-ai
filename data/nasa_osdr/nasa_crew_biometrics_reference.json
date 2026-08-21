@@ -1,0 +1,110 @@
+{
+  "mission": "Artemis Mars Transit (Deep Space Habitat)",
+  "standards_reference": "NASA-STD-3001 (NASA Spaceflight Human-System Standard) & NASA SP-2010-3407",
+  "crew_members": [
+    {
+      "id": "ASTRO-01",
+      "name": "Elena Vance",
+      "role": "Commander / Command Pilot",
+      "age": 42,
+      "gender": "Female",
+      "baseline": {
+        "resting_heart_rate": 58,
+        "hrv_rmssd": 62.5,
+        "spo2_percent": 98.5,
+        "blood_pressure": "115/75",
+        "core_temp_c": 36.8,
+        "target_sleep_hours": 8.0,
+        "pvt_reaction_time_ms": 215
+      }
+    },
+    {
+      "id": "ASTRO-02",
+      "name": "Mark Jensen",
+      "role": "Flight Engineer / Lead EVA Specialist",
+      "age": 39,
+      "gender": "Male",
+      "baseline": {
+        "resting_heart_rate": 62,
+        "hrv_rmssd": 58.0,
+        "spo2_percent": 98.0,
+        "blood_pressure": "120/80",
+        "core_temp_c": 36.9,
+        "target_sleep_hours": 8.0,
+        "pvt_reaction_time_ms": 225
+      }
+    },
+    {
+      "id": "ASTRO-03",
+      "name": "Dr. Aris Thorne",
+      "role": "Science Officer / Astrobiologist",
+      "age": 45,
+      "gender": "Non-Binary",
+      "baseline": {
+        "resting_heart_rate": 66,
+        "hrv_rmssd": 52.0,
+        "spo2_percent": 98.2,
+        "blood_pressure": "118/78",
+        "core_temp_c": 36.7,
+        "target_sleep_hours": 8.0,
+        "pvt_reaction_time_ms": 220
+      }
+    },
+    {
+      "id": "ASTRO-04",
+      "name": "Sara Lin",
+      "role": "Payload Specialist / Systems Engineer",
+      "age": 34,
+      "gender": "Female",
+      "baseline": {
+        "resting_heart_rate": 55,
+        "hrv_rmssd": 68.0,
+        "spo2_percent": 99.0,
+        "blood_pressure": "110/72",
+        "core_temp_c": 36.8,
+        "target_sleep_hours": 8.0,
+        "pvt_reaction_time_ms": 210
+      }
+    }
+  ],
+  "thresholds": {
+    "heart_rate": {
+      "nominal_min": 45,
+      "nominal_max": 100,
+      "critical_max": 140
+    },
+    "hrv_rmssd": {
+      "nominal_min": 40,
+      "warning_below": 30,
+      "critical_below": 20
+    },
+    "spo2_percent": {
+      "nominal_min": 95,
+      "warning_below": 92,
+      "critical_below": 88
+    },
+    "ambient_co2_ppm": {
+      "nominal_max": 3000,
+      "warning_above": 4500,
+      "critical_above": 7000
+    },
+    "daily_radiation_mgy": {
+      "nominal_max": 1.5,
+      "warning_above": 5.0,
+      "critical_above": 50.0
+    },
+    "cumulative_radiation_msv": {
+      "safe_mission_limit": 600.0
+    },
+    "pvt_reaction_time_ms": {
+      "nominal_max": 260,
+      "warning_above": 320,
+      "critical_above": 400
+    },
+    "sleep_debt_72h_hours": {
+      "nominal_max": 2.0,
+      "warning_above": 4.5,
+      "critical_above": 7.0
+    }
+  }
+}
