@@ -2,6 +2,7 @@
 
 import { type TrafficLight } from '@/types/telemetry'
 import { useEffect, useState } from 'react'
+import { Satellite, Radio, Cpu, ShieldCheck, ShieldAlert, Sparkles, Activity } from 'lucide-react'
 
 interface HeaderProps {
   missionDay: number
@@ -25,65 +26,75 @@ function METClock() {
     const id = setInterval(tick, 1000)
     return () => clearInterval(id)
   }, [])
-  return <span className="font-mono text-[#00F0FF] tabular-nums">{time}</span>
+  return <span className="font-mono text-[#00F0FF] tabular-nums tracking-wider">{time}</span>
 }
 
-const STATUS_COLOR: Record<TrafficLight, string> = {
-  GREEN: 'text-[#10B981]',
-  AMBER: 'text-[#F59E0B]',
-  RED:   'text-[#EF4444]',
+const STATUS_COLOR: Record<TrafficLight, { text: string; bg: string; border: string }> = {
+  GREEN: { text: 'text-[#10B981]', bg: 'bg-[#10B981]/15', border: 'border-[#10B981]/40' },
+  AMBER: { text: 'text-[#F59E0B]', bg: 'bg-[#F59E0B]/15', border: 'border-[#F59E0B]/40' },
+  RED:   { text: 'text-[#EF4444]', bg: 'bg-[#EF4444]/15', border: 'border-[#EF4444]/40' },
 }
 
 export default function Header({ missionDay, fleetStatus, fleetReadiness, missionName }: HeaderProps) {
+  const statusCfg = STATUS_COLOR[fleetStatus] || STATUS_COLOR.GREEN
+
   return (
-    <header className="bg-[#111827] border-b border-[#1F2D45] sticky top-0 z-50">
-      <div className="max-w-[1600px] mx-auto px-4 py-3 flex items-center justify-between gap-4">
+    <header className="bg-[#070C18]/90 backdrop-blur-md border-b border-[#1E293B] sticky top-0 z-50 shadow-2xl">
+      <div className="max-w-[1600px] mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
         {/* Left — Brand */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#00F0FF]/10 border border-[#00F0FF]/40 flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00F0FF" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 2a10 10 0 0 1 7.07 17.07M12 2a10 10 0 0 0-7.07 17.07" />
-              <line x1="12" y1="2" x2="12" y2="22" />
-              <line x1="2" y1="12" x2="22" y2="12" />
-            </svg>
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-[#00F0FF]/20 to-blue-900/30 border border-[#00F0FF]/40 flex items-center justify-center text-[#00F0FF] shadow-neon-cyan">
+            <Satellite className="w-5 h-5 animate-pulse" />
           </div>
           <div>
-            <div className="font-bold text-white text-sm leading-none tracking-wide">AEGISCREW AI</div>
-            <div className="text-[10px] text-[#6B7280] leading-none mt-0.5 truncate">{missionName}</div>
+            <div className="flex items-center gap-2">
+              <span className="font-orbitron font-bold text-white text-base tracking-widest">AEGISCREW</span>
+              <span className="font-orbitron font-black text-[#00F0FF] text-base tracking-wider glow-cyan">AI</span>
+              <span className="px-1.5 py-0.5 text-[9px] rounded bg-blue-950/80 border border-blue-500/40 text-blue-300 font-mono uppercase font-semibold">IBM BOB 2026</span>
+            </div>
+            <div className="text-[11px] text-[#64748B] font-mono leading-tight mt-0.5 truncate flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF]/60" />
+              <span>{missionName}</span>
+            </div>
           </div>
         </div>
 
-        {/* Centre — MET */}
-        <div className="hidden md:flex flex-col items-center">
-          <div className="text-[10px] text-[#6B7280] uppercase tracking-widest">Mission Elapsed Time</div>
-          <div className="text-sm font-bold">
-            <span className="text-[#00F0FF] font-mono">MET Day {String(missionDay).padStart(3, '0')}</span>
-            <span className="text-[#6B7280] mx-2">|</span>
+        {/* Centre — MET Clock */}
+        <div className="hidden md:flex flex-col items-center bg-[#0B132B]/60 px-5 py-1.5 rounded-lg border border-[#1E293B]">
+          <div className="text-[10px] text-[#64748B] font-orbitron uppercase tracking-widest flex items-center gap-1.5">
+            <Activity className="w-3 h-3 text-[#00F0FF]" />
+            <span>Mission Elapsed Time</span>
+          </div>
+          <div className="text-sm font-bold mt-0.5">
+            <span className="text-[#00F0FF] font-orbitron tracking-wider">MET Day {String(missionDay).padStart(3, '0')}</span>
+            <span className="text-[#334155] mx-2.5">|</span>
             <METClock />
           </div>
         </div>
 
-        {/* Right — Fleet readiness */}
+        {/* Right — Fleet Readiness & Badges */}
         <div className="flex items-center gap-4">
           <div className="hidden sm:flex flex-col items-end">
-            <div className="text-[10px] text-[#6B7280] uppercase tracking-widest">Fleet Readiness</div>
-            <div className={`text-sm font-bold font-mono ${STATUS_COLOR[fleetStatus]}`}>
-              {fleetReadiness.toFixed(0)}% [{fleetStatus}]
+            <div className="text-[10px] text-[#64748B] font-orbitron uppercase tracking-widest">Fleet Readiness</div>
+            <div className={`text-sm font-bold font-mono ${statusCfg.text} flex items-center gap-1.5`}>
+              {fleetStatus === 'RED' ? <ShieldAlert className="w-3.5 h-3.5" /> : <ShieldCheck className="w-3.5 h-3.5" />}
+              <span>{fleetReadiness.toFixed(0)}% [{fleetStatus}]</span>
             </div>
           </div>
 
-          {/* Live indicator */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#00F0FF]/10 border border-[#00F0FF]/25">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#00F0FF] animate-pulse" />
-            <span className="text-[10px] font-mono text-[#00F0FF] uppercase tracking-wider">Live</span>
+          {/* Live Status Pill */}
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#00F0FF]/10 border border-[#00F0FF]/30 shadow-neon-cyan">
+            <span className="w-2 h-2 rounded-full bg-[#00F0FF] animate-ping" />
+            <span className="text-[10px] font-mono text-[#00F0FF] uppercase font-bold tracking-wider">LIVE TELEMETRY</span>
           </div>
 
-          {/* IBM badge */}
-          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#1A2236] border border-[#1F2D45]">
-            <span className="text-[10px] text-[#6B7280]">Powered by</span>
-            <span className="text-[11px] font-bold text-[#00F0FF]">IBM</span>
-            <span className="text-[10px] text-[#6B7280]">watsonx.ai</span>
+          {/* IBM Watsonx Badge */}
+          <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-lg bg-[#0E172A] border border-[#1E293B]">
+            <Cpu className="w-3.5 h-3.5 text-[#00F0FF]" />
+            <div className="text-[10px] leading-tight">
+              <div className="text-[#64748B]">Powered by</div>
+              <div className="font-bold text-white"><span className="text-[#00F0FF]">IBM</span> watsonx.ai</div>
+            </div>
           </div>
         </div>
       </div>

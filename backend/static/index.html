@@ -1,102 +1,146 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AegisCrew AI — Mission Control Center</title>
+  <title>AegisCrew AI — Autonomous Deep-Space Chief Medical Officer</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.9/dist/lenis.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@400;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;600;700&display=swap');
-    body { font-family: 'Space Grotesk', sans-serif; background-color: #0B0F19; color: #F3F4F6; }
-    .mono { font-family: 'JetBrains Mono', monospace; }
-    .neon-cyan { color: #00F0FF; text-shadow: 0 0 10px rgba(0,240,255,0.4); }
-    .neon-border { border-color: #00F0FF; box-shadow: 0 0 15px rgba(0,240,255,0.2); }
-    .card-dark { background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(12px); border: 1px solid #1F293D; }
-    .pulse-cyan { animation: pulseCyan 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-    @keyframes pulseCyan { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+    body { font-family: 'Space Grotesk', sans-serif; background-color: #050811; color: #F1F5F9; }
+    .font-orbitron { font-family: 'Orbitron', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .glow-cyan { color: #00F0FF; text-shadow: 0 0 12px rgba(0,240,255,0.6); }
+    .shadow-neon-cyan { box-shadow: 0 0 20px rgba(0,240,255,0.25); }
+    .shadow-neon-red { box-shadow: 0 0 20px rgba(239,68,68,0.3); }
+    .shadow-neon-amber { box-shadow: 0 0 20px rgba(245,158,11,0.25); }
+    .card-glass { background: rgba(10, 15, 30, 0.85); backdrop-filter: blur(16px); border: 1px solid #1E293B; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #050811; }
+    ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #00F0FF; }
   </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col antialiased selection:bg-[#00F0FF]/20 selection:text-[#00F0FF]">
 
   <!-- TOP STATUS HEADER -->
-  <header class="card-dark border-b border-[#1F293D] px-6 py-4 sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4">
+  <header class="card-glass border-b border-[#1E293B] px-6 py-4 sticky top-0 z-50 shadow-2xl">
+    <div class="max-w-[1600px] mx-auto flex flex-wrap justify-between items-center gap-4">
       <div class="flex items-center space-x-4">
-        <div class="w-10 h-10 rounded-lg bg-cyan-950 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
-          <i class="fa-solid fa-satellite-dish text-xl"></i>
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#00F0FF]/20 to-blue-900/30 border border-[#00F0FF]/40 flex items-center justify-center text-[#00F0FF] shadow-neon-cyan">
+          <i class="fa-solid fa-satellite text-xl animate-pulse"></i>
         </div>
         <div>
-          <div class="flex items-center space-x-2">
-            <h1 class="text-xl font-bold tracking-wider text-white">AEGISCREW <span class="text-cyan-400">AI</span></h1>
-            <span class="px-2 py-0.5 text-xs rounded bg-blue-900/60 border border-blue-500/40 text-blue-300 mono font-semibold">IBM BOB 2026</span>
+          <div class="flex items-center space-x-2.5">
+            <h1 class="text-lg font-black tracking-widest text-white font-orbitron">AEGISCREW <span class="text-[#00F0FF] glow-cyan font-black">AI</span></h1>
+            <span class="px-2 py-0.5 text-[10px] rounded bg-blue-950/80 border border-blue-500/40 text-blue-300 font-mono font-bold uppercase">IBM BOB 2026</span>
           </div>
-          <p class="text-xs text-gray-400">Autonomous Deep-Space Chief Medical Officer · Artemis Mars Transit</p>
+          <p class="text-[11px] text-gray-400 font-mono mt-0.5">Autonomous Deep-Space Chief Medical Officer · Artemis Mars Transit</p>
         </div>
       </div>
 
-      <div class="flex items-center space-x-6">
-        <div class="text-right hidden sm:block">
-          <div class="text-xs text-gray-400 mono">MISSION CLOCK</div>
-          <div id="mission-clock" class="text-sm font-bold text-cyan-300 mono">MET Day 142 · 19:45:00 UTC</div>
+      <!-- Center MET Clock -->
+      <div class="hidden md:flex flex-col items-center bg-[#070D1F] px-6 py-2 rounded-xl border border-[#1E293B]">
+        <div class="text-[10px] text-gray-400 font-orbitron uppercase tracking-widest flex items-center gap-1.5">
+          <i class="fa-solid fa-clock text-[#00F0FF]"></i>
+          <span>Mission Elapsed Time</span>
         </div>
+        <div class="text-sm font-bold mt-0.5">
+          <span class="text-[#00F0FF] font-orbitron tracking-wider">MET Day 142</span>
+          <span class="text-gray-600 mx-2.5">|</span>
+          <span id="mission-clock" class="text-cyan-300 font-mono tabular-nums">19:45:00 UTC</span>
+        </div>
+      </div>
+
+      <!-- Right Badges -->
+      <div class="flex items-center space-x-5">
         <div class="text-right">
-          <div class="text-xs text-gray-400 mono">FLEET READINESS</div>
-          <div class="flex items-center space-x-2">
-            <span id="fleet-score" class="text-lg font-bold text-emerald-400 mono">93.1%</span>
-            <span id="fleet-badge" class="px-2 py-0.5 text-xs rounded bg-emerald-900/50 border border-emerald-500/40 text-emerald-300 mono font-semibold">NOMINAL</span>
+          <div class="text-[10px] text-gray-400 font-orbitron uppercase tracking-widest">FLEET READINESS</div>
+          <div class="flex items-center space-x-2 justify-end mt-0.5">
+            <span id="fleet-score" class="text-xl font-black text-emerald-400 font-orbitron">93%</span>
+            <span id="fleet-badge" class="px-2 py-0.5 text-[10px] rounded font-orbitron font-bold bg-emerald-950/80 border border-emerald-500/50 text-emerald-300">NOMINAL</span>
           </div>
+        </div>
+
+        <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#00F0FF]/10 border border-[#00F0FF]/30 shadow-neon-cyan">
+          <span class="w-2 h-2 rounded-full bg-[#00F0FF] animate-ping"></span>
+          <span class="text-[10px] font-mono text-[#00F0FF] uppercase font-bold tracking-wider">LIVE</span>
         </div>
       </div>
     </div>
   </header>
 
   <!-- COMMS LATENCY & AUTONOMY BANNER -->
-  <div class="bg-gradient-to-r from-blue-950/80 via-slate-900/90 to-cyan-950/80 border-b border-cyan-500/30 px-6 py-2.5">
-    <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2 text-xs">
+  <div class="bg-gradient-to-r from-[#070D1F] via-[#0B1528] to-[#070D1F] border-b border-[#00F0FF]/30 px-6 py-2.5 shadow-lg">
+    <div class="max-w-[1600px] mx-auto flex flex-wrap justify-between items-center gap-3 text-xs">
       <div class="flex items-center space-x-3">
-        <span class="flex h-2.5 w-2.5 relative">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
-        </span>
-        <span class="text-cyan-300 font-semibold tracking-wide uppercase">AUTONOMOUS ON-BOARD AI ACTIVE</span>
-        <span class="text-gray-400 hidden md:inline">| Earth Ground Comms Latency: <strong id="comms-delay-text" class="text-white mono">1,200s (20.0 min one-way)</strong></span>
+        <div class="flex items-center gap-2 px-2.5 py-1 rounded bg-[#00F0FF]/15 border border-[#00F0FF]/40 text-[#00F0FF] font-orbitron font-bold text-[10px] tracking-wider uppercase shadow-neon-cyan">
+          <i class="fa-solid fa-microchip animate-pulse"></i>
+          <span>DEEP SPACE AUTONOMOUS AI ACTIVE</span>
+        </div>
+        <span class="text-gray-400 hidden md:inline font-mono text-[11px]">| Earth Ground Comms Latency: <strong id="comms-delay-text" class="text-white">1,200s (20.0 min one-way)</strong></span>
       </div>
       <div class="flex items-center space-x-2">
-        <span class="text-gray-400">Comms Simulation:</span>
-        <button onclick="setComms('ISS', 0)" id="btn-iss" class="px-2.5 py-1 rounded text-xs mono bg-gray-800 text-gray-300 hover:bg-gray-700">ISS (0s)</button>
-        <button onclick="setComms('Moon', 1.3)" id="btn-moon" class="px-2.5 py-1 rounded text-xs mono bg-gray-800 text-gray-300 hover:bg-gray-700">Moon (1.3s)</button>
-        <button onclick="setComms('Mars', 1200)" id="btn-mars" class="px-2.5 py-1 rounded text-xs mono bg-cyan-900 border border-cyan-500 text-cyan-200 font-bold">Mars (20m)</button>
+        <span class="text-gray-400 font-mono text-[11px]">Comms Simulation:</span>
+        <button onclick="setComms('ISS', 0)" id="btn-iss" class="px-3 py-1 rounded text-xs font-orbitron bg-[#070D1F] border border-[#1E293B] text-gray-300 hover:border-gray-500">ISS (0s)</button>
+        <button onclick="setComms('Moon', 1.3)" id="btn-moon" class="px-3 py-1 rounded text-xs font-orbitron bg-[#070D1F] border border-[#1E293B] text-gray-300 hover:border-gray-500">Moon (1.3s)</button>
+        <button onclick="setComms('Mars', 1200)" id="btn-mars" class="px-3 py-1 rounded text-xs font-orbitron bg-[#00F0FF]/20 border border-[#00F0FF] text-[#00F0FF] font-bold shadow-neon-cyan">Mars (20m)</button>
       </div>
     </div>
   </div>
 
-  <main class="max-w-7xl mx-auto px-6 py-6 space-y-6 flex-1 w-full">
+  <main class="max-w-[1600px] mx-auto px-6 py-6 space-y-6 flex-1 w-full">
 
     <!-- EMERGENCY SCENARIO SWITCHER -->
-    <div class="card-dark rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 border border-cyan-500/20">
-      <div class="flex items-center space-x-3">
-        <div class="w-8 h-8 rounded bg-amber-950/60 border border-amber-500/40 flex items-center justify-center text-amber-400">
-          <i class="fa-solid fa-triangle-exclamation"></i>
-        </div>
-        <div>
-          <h2 class="text-sm font-bold text-white uppercase tracking-wider">Inject Deep Space Emergency Scenario</h2>
-          <p class="text-xs text-gray-400">Live trigger to evaluate autonomous IBM Granite AI countermeasure synthesis</p>
+    <div class="card-glass rounded-2xl p-5 border border-cyan-500/20 shadow-2xl space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+          </div>
+          <div>
+            <h2 class="text-sm font-bold font-orbitron text-white uppercase tracking-wider flex items-center gap-2">
+              <span>Deep Space Emergency Scenario Injector</span>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 font-mono lowercase">live trigger</span>
+            </h2>
+            <p class="text-xs text-gray-400 font-sans mt-0.5">Live trigger to evaluate autonomous IBM Granite 3.0 AI clinical countermeasure synthesis</p>
+          </div>
         </div>
       </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <button onclick="injectScenario('nominal')" id="scen-nominal" class="px-3 py-1.5 rounded-lg text-xs font-semibold mono transition-all bg-cyan-950 border border-cyan-500 text-cyan-200 shadow-lg shadow-cyan-950/50">
-          <i class="fa-solid fa-check-circle mr-1"></i> Nominal Cruise
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <button onclick="injectScenario('nominal')" id="scen-nominal" class="p-3.5 rounded-xl border text-left font-orbitron text-xs transition-all bg-emerald-950/60 border-emerald-500 text-emerald-200 shadow-lg shadow-emerald-950/50">
+          <div class="flex items-center justify-between font-bold mb-1">
+            <span><i class="fa-solid fa-circle-check mr-1.5"></i> Nominal Cruise</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          </div>
+          <p class="text-[11px] font-sans text-gray-300 font-normal leading-relaxed">Standard flight medical surveillance across all crew members.</p>
         </button>
-        <button onclick="injectScenario('spe')" id="scen-spe" class="px-3 py-1.5 rounded-lg text-xs font-semibold mono transition-all bg-gray-900/80 border border-gray-700 text-gray-300 hover:border-red-500 hover:text-red-300">
-          <i class="fa-solid fa-radiation mr-1"></i> Solar Particle Event (SPE)
+
+        <button onclick="injectScenario('spe')" id="scen-spe" class="p-3.5 rounded-xl border text-left font-orbitron text-xs transition-all bg-[#070D1F] border-[#1E293B] text-gray-400 hover:border-red-500 hover:text-red-300">
+          <div class="flex items-center justify-between font-bold mb-1">
+            <span><i class="fa-solid fa-radiation mr-1.5"></i> Solar Particle Event</span>
+          </div>
+          <p class="text-[11px] font-sans text-gray-400 font-normal leading-relaxed">Solar flare radiation spike on Engineer Jensen (87.4 mGy/day) → EVA halt & storm shelter ingress.</p>
         </button>
-        <button onclick="injectScenario('co2_spike')" id="scen-co2" class="px-3 py-1.5 rounded-lg text-xs font-semibold mono transition-all bg-gray-900/80 border border-gray-700 text-gray-300 hover:border-amber-500 hover:text-amber-300">
-          <i class="fa-solid fa-smog mr-1"></i> ECLSS CO₂ Leak
+
+        <button onclick="injectScenario('co2_spike')" id="scen-co2" class="p-3.5 rounded-xl border text-left font-orbitron text-xs transition-all bg-[#070D1F] border-[#1E293B] text-gray-400 hover:border-amber-500 hover:text-amber-300">
+          <div class="flex items-center justify-between font-bold mb-1">
+            <span><i class="fa-solid fa-smog mr-1.5"></i> ECLSS CO₂ Leak</span>
+          </div>
+          <p class="text-[11px] font-sans text-gray-400 font-normal leading-relaxed">5,120 ppm ambient CO₂ → Acute hypercapnia, elevated resting HR, and morning cognitive lag.</p>
         </button>
-        <button onclick="injectScenario('sleep_deprivation')" id="scen-sleep" class="px-3 py-1.5 rounded-lg text-xs font-semibold mono transition-all bg-gray-900/80 border border-gray-700 text-gray-300 hover:border-purple-500 hover:text-purple-300">
-          <i class="fa-solid fa-bed mr-1"></i> Circadian Collapse
+
+        <button onclick="injectScenario('sleep_deprivation')" id="scen-sleep" class="p-3.5 rounded-xl border text-left font-orbitron text-xs transition-all bg-[#070D1F] border-[#1E293B] text-gray-400 hover:border-purple-500 hover:text-purple-300">
+          <div class="flex items-center justify-between font-bold mb-1">
+            <span><i class="fa-solid fa-bed mr-1.5"></i> Circadian Collapse</span>
+          </div>
+          <p class="text-[11px] font-sans text-gray-400 font-normal leading-relaxed">Commander Vance 72-hr sleep debt → 9.2 hrs → High-risk EVA freeze & phototherapy.</p>
         </button>
       </div>
     </div>
@@ -111,12 +155,12 @@
 
       <!-- CHARTS (2 Cols) -->
       <div class="lg:col-span-2 space-y-4">
-        <div class="card-dark rounded-xl p-5">
+        <div class="card-glass rounded-2xl p-5 shadow-2xl">
           <div class="flex justify-between items-center mb-4">
-            <h3 class="text-sm font-bold text-white tracking-wide uppercase flex items-center">
-              <i class="fa-solid fa-heart-pulse text-cyan-400 mr-2"></i> 24-Hour Heart Rate & HRV Autonomic Tone Trend
+            <h3 class="text-sm font-bold text-white tracking-wide font-orbitron uppercase flex items-center">
+              <i class="fa-solid fa-heart-pulse text-[#00F0FF] mr-2"></i> 24-Hour Heart Rate & HRV Autonomic Tone Trend
             </h3>
-            <span class="text-xs text-gray-400 mono">NASA-STD-3001 Threshold: 30ms</span>
+            <span class="text-xs text-gray-400 font-mono">NASA-STD-3001 Threshold: 30ms</span>
           </div>
           <div class="h-64">
             <canvas id="hrvChart"></canvas>
@@ -124,16 +168,16 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="card-dark rounded-xl p-4">
-            <h3 class="text-xs font-bold text-white tracking-wide uppercase mb-3 flex items-center">
+          <div class="card-glass rounded-2xl p-4 shadow-xl">
+            <h3 class="text-xs font-bold text-white tracking-wide font-orbitron uppercase mb-3 flex items-center">
               <i class="fa-solid fa-radiation text-amber-400 mr-2"></i> Radiation Flux (mGy/day)
             </h3>
             <div class="h-40">
               <canvas id="radChart"></canvas>
             </div>
           </div>
-          <div class="card-dark rounded-xl p-4">
-            <h3 class="text-xs font-bold text-white tracking-wide uppercase mb-3 flex items-center">
+          <div class="card-glass rounded-2xl p-4 shadow-xl">
+            <h3 class="text-xs font-bold text-white tracking-wide font-orbitron uppercase mb-3 flex items-center">
               <i class="fa-solid fa-lungs text-purple-400 mr-2"></i> Cabin Atmosphere CO₂ (ppm)
             </h3>
             <div class="h-40">
@@ -144,42 +188,47 @@
       </div>
 
       <!-- IBM GRANITE CLINICAL CONSOLE (1 Col) -->
-      <div class="card-dark rounded-xl p-5 flex flex-col h-full border border-cyan-500/30">
-        <div class="flex items-center justify-between border-b border-gray-800 pb-3 mb-3">
-          <div class="flex items-center space-x-2">
-            <i class="fa-solid fa-user-doctor text-cyan-400 text-lg"></i>
+      <div class="card-glass rounded-2xl p-5 flex flex-col h-full border border-cyan-500/30 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-[#1E293B] pb-3 mb-3">
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-lg bg-cyan-950 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+              <i class="fa-solid fa-user-doctor"></i>
+            </div>
             <div>
-              <h3 class="text-sm font-bold text-white">AI FLIGHT SURGEON</h3>
-              <p class="text-[10px] text-cyan-300 mono">IBM Granite 3.0 · NASA SP-2010-3407 RAG</p>
+              <h3 class="text-sm font-bold text-white font-orbitron">AI FLIGHT SURGEON</h3>
+              <p class="text-[10px] text-cyan-300 font-mono">IBM Granite 3.0 · NASA SP-2010-3407</p>
             </div>
           </div>
-          <button onclick="fetchBriefing()" class="px-2.5 py-1 bg-cyan-950 border border-cyan-500/50 hover:border-cyan-400 text-cyan-300 text-xs rounded mono flex items-center space-x-1">
+          <button onclick="fetchBriefing()" class="px-3 py-1 bg-[#070D1F] border border-[#1E293B] hover:border-[#00F0FF] text-[#00F0FF] text-xs rounded-lg font-orbitron flex items-center space-x-1.5 transition">
             <i class="fa-solid fa-arrows-rotate text-[10px]"></i>
             <span>Refresh</span>
           </button>
         </div>
 
         <!-- Terminal Output -->
-        <div id="ai-output" class="flex-1 overflow-y-auto space-y-3 pr-1 text-xs mono max-h-[450px]">
-          <div class="p-3 bg-black/40 rounded border border-gray-800 text-gray-300">
-            <div class="text-cyan-400 font-bold mb-1">⬡ IBM GRANITE EXECUTIVE BRIEFING</div>
-            <p id="briefing-text" class="leading-relaxed text-gray-300">Loading daily flight surgeon briefing from IBM Granite...</p>
+        <div id="ai-output" class="flex-1 overflow-y-auto space-y-3 pr-1 text-xs font-mono max-h-[450px]">
+          <div class="p-3.5 bg-[#040814] rounded-xl border border-[#1E293B] text-gray-300">
+            <div class="text-[#00F0FF] font-orbitron font-bold mb-1.5 flex items-center gap-1.5">
+              <i class="fa-solid fa-brain"></i>
+              <span>IBM GRANITE EXECUTIVE BRIEFING</span>
+            </div>
+            <p id="briefing-text" class="leading-relaxed text-gray-300 whitespace-pre-wrap">Loading daily flight surgeon briefing from IBM Granite...</p>
           </div>
 
-          <div id="prescription-box" class="hidden p-3 bg-amber-950/40 rounded border border-amber-500/40 text-amber-200">
-            <div class="font-bold flex items-center justify-between text-amber-300 mb-1">
-              <span>⚠ CLINICAL COUNTERMEASURE PRESCRIPTION</span>
-              <span class="text-[10px] bg-amber-900/60 px-1.5 py-0.5 rounded">AUTONOMOUS</span>
+          <div id="prescription-box" class="hidden p-3.5 bg-amber-950/40 rounded-xl border border-amber-500/40 text-amber-200">
+            <div class="font-orbitron font-bold flex items-center justify-between text-amber-300 mb-1.5">
+              <span>⚠ CLINICAL COUNTERMEASURE PROTOCOL</span>
+              <span class="text-[9px] bg-amber-900/60 px-2 py-0.5 rounded font-mono">AUTONOMOUS</span>
             </div>
-            <p id="prescription-text" class="text-xs leading-relaxed"></p>
+            <p id="prescription-text" class="text-xs leading-relaxed whitespace-pre-wrap"></p>
           </div>
         </div>
 
         <!-- Interactive AI Chat -->
-        <div class="mt-4 pt-3 border-t border-gray-800">
+        <div class="mt-4 pt-3 border-t border-[#1E293B]">
           <form onsubmit="handleChat(event)" class="flex space-x-2">
-            <input id="chat-input" type="text" placeholder="Ask Flight Surgeon (e.g. 'Why is Jensen flagged?')..." class="flex-1 bg-black/60 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500 mono" required />
-            <button type="submit" class="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-bold mono flex items-center">
+            <input id="chat-input" type="text" placeholder="Ask AI Surgeon (e.g. 'Why is Jensen flagged for EVA?')..." class="flex-1 bg-[#040814] border border-[#1E293B] focus:border-[#00F0FF] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none font-mono" required />
+            <button type="submit" class="px-4 py-2.5 bg-[#00F0FF]/20 hover:bg-[#00F0FF]/30 border border-[#00F0FF] text-[#00F0FF] rounded-xl text-xs font-orbitron font-bold flex items-center shadow-neon-cyan">
               <i class="fa-solid fa-paper-plane"></i>
             </button>
           </form>
@@ -191,11 +240,18 @@
 
   </main>
 
-  <footer class="card-dark border-t border-[#1F293D] py-3 text-center text-xs text-gray-500 mono mt-auto">
+  <footer class="card-glass border-t border-[#1E293B] py-3.5 text-center text-xs text-gray-500 font-mono mt-auto">
     AegisCrew AI · IBM Bob AI Builders Challenge (August 2026) · Powered by IBM watsonx.ai & Granite 3.0 · NASA-STD-3001 Grounded
   </footer>
 
   <script>
+    // Initialize Lenis Smooth Scroll
+    if (typeof Lenis !== 'undefined') {
+      const lenis = new Lenis({ duration: 1.2, smoothWheel: true });
+      function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
+      requestAnimationFrame(raf);
+    }
+
     const API = 'http://localhost:8000';
     let activeScenario = 'nominal';
     let hrvChartInst, radChartInst, co2ChartInst;
@@ -215,10 +271,10 @@
       document.getElementById('fleet-score').innerText = `${data.fleet_readiness}%`;
       const badge = document.getElementById('fleet-badge');
       badge.innerText = data.fleet_status;
-      badge.className = `px-2 py-0.5 text-xs rounded mono font-semibold ${
-        data.fleet_status === 'GREEN' ? 'bg-emerald-900/50 border border-emerald-500/40 text-emerald-300' :
-        data.fleet_status === 'AMBER' ? 'bg-amber-900/50 border border-amber-500/40 text-amber-300' :
-        'bg-red-900/50 border border-red-500/40 text-red-300'
+      badge.className = `px-2 py-0.5 text-[10px] rounded font-orbitron font-bold ${
+        data.fleet_status === 'GREEN' ? 'bg-emerald-950/80 border border-emerald-500/50 text-emerald-300' :
+        data.fleet_status === 'AMBER' ? 'bg-amber-950/80 border border-amber-500/50 text-amber-300' :
+        'bg-red-950/80 border border-red-500/50 text-red-300 shadow-neon-red'
       }`;
 
       // Render Crew Cards
@@ -229,44 +285,46 @@
         const f = c.latest_frame;
         const isRed = r.status === 'RED';
         const isAmber = r.status === 'AMBER';
-        const borderColor = isRed ? 'border-red-500/70 shadow-lg shadow-red-950/50' : isAmber ? 'border-amber-500/60 shadow-lg shadow-amber-950/50' : 'border-gray-800';
+        const borderColor = isRed ? 'border-red-500/70 shadow-neon-red' : isAmber ? 'border-amber-500/60 shadow-neon-amber' : 'border-[#1E293B]';
         const scoreColor = isRed ? 'text-red-400' : isAmber ? 'text-amber-400' : 'text-emerald-400';
 
         return `
-          <div class="card-dark rounded-xl p-4 border ${borderColor} flex flex-col justify-between space-y-3">
+          <div class="card-glass rounded-2xl p-4 border ${borderColor} flex flex-col justify-between space-y-3.5 hover:border-cyan-500/40 transition-all shadow-xl">
             <div>
               <div class="flex justify-between items-start mb-2">
                 <div>
-                  <h4 class="font-bold text-white text-sm">${p.name}</h4>
-                  <p class="text-[11px] text-gray-400">${p.role}</p>
+                  <span class="text-[9px] font-mono text-gray-500 uppercase tracking-widest">${p.id}</span>
+                  <h4 class="font-bold font-orbitron text-white text-sm tracking-wide">${p.name}</h4>
+                  <p class="text-[11px] text-gray-400 font-sans">${p.role}</p>
                 </div>
                 <div class="text-right">
-                  <span class="text-xl font-bold mono ${scoreColor}">${r.mission_readiness_score}</span>
-                  <span class="block text-[9px] text-gray-400 mono">READINESS</span>
+                  <span class="text-xl font-black font-orbitron ${scoreColor}">${r.mission_readiness_score}</span>
+                  <span class="block text-[8px] text-gray-400 font-mono uppercase tracking-widest">READINESS</span>
                 </div>
               </div>
 
-              <div class="grid grid-cols-2 gap-2 my-3 text-[11px] mono bg-black/40 p-2.5 rounded border border-gray-800/80">
-                <div>HR: <strong class="text-white">${f.vitals.heart_rate} bpm</strong></div>
-                <div>HRV: <strong class="${f.vitals.hrv_rmssd < 30 ? 'text-red-400' : 'text-cyan-300'}">${f.vitals.hrv_rmssd} ms</strong></div>
+              <div class="grid grid-cols-2 gap-1.5 my-3 text-[11px] font-mono bg-[#040814] p-2.5 rounded-xl border border-[#1E293B]">
+                <div>HR: <strong class="text-white">${f.vitals.heart_rate_bpm} bpm</strong></div>
+                <div>HRV: <strong class="${f.vitals.hrv_rmssd_ms < 30 ? 'text-red-400' : 'text-cyan-300'}">${f.vitals.hrv_rmssd_ms} ms</strong></div>
                 <div>SpO₂: <strong class="${f.vitals.spo2_percent < 95 ? 'text-amber-400' : 'text-emerald-400'}">${f.vitals.spo2_percent}%</strong></div>
-                <div>Sleep Debt: <strong class="${f.circadian.sleep_debt_72h > 4 ? 'text-red-400' : 'text-gray-300'}">${f.circadian.sleep_debt_72h}h</strong></div>
-                <div>Radiation: <strong class="${f.radiation.daily_dose_mgy > 5 ? 'text-red-400' : 'text-amber-300'}">${f.radiation.daily_dose_mgy} mGy</strong></div>
-                <div>PVT Lag: <strong class="${f.cognitive.pvt_reaction_time_ms > 300 ? 'text-amber-400' : 'text-gray-300'}">${f.cognitive.pvt_reaction_time_ms} ms</strong></div>
+                <div>Sleep Debt: <strong class="${f.circadian.sleep_debt_72h_hrs > 4 ? 'text-red-400' : 'text-gray-300'}">${f.circadian.sleep_debt_72h_hrs}h</strong></div>
+                <div>Radiation: <strong class="${f.radiation.daily_radiation_mgy > 5 ? 'text-red-400' : 'text-amber-300'}">${f.radiation.daily_radiation_mgy} mGy</strong></div>
+                <div>PVT Lag: <strong class="${f.circadian.pvt_reaction_time_ms > 300 ? 'text-amber-400' : 'text-gray-300'}">${f.circadian.pvt_reaction_time_ms} ms</strong></div>
               </div>
 
               ${r.anomalies.length > 0 ? `
-                <div class="space-y-1 my-2">
+                <div class="space-y-1.5 my-2">
                   ${r.anomalies.map(a => `
-                    <div class="text-[10px] px-2 py-1 rounded bg-red-950/60 border border-red-500/40 text-red-300 mono">
-                      ⚠ ${a.description}
+                    <div class="text-[10px] px-2.5 py-1 rounded-md bg-red-950/60 border border-red-500/40 text-red-300 font-mono flex items-center gap-1.5">
+                      <i class="fa-solid fa-triangle-exclamation text-[10px]"></i>
+                      <span class="truncate">${a.description}</span>
                     </div>
                   `).join('')}
                 </div>
               ` : ''}
             </div>
 
-            <button onclick="prescribe('${p.id}', '${p.name}')" class="w-full py-1.5 px-3 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/50 hover:border-cyan-400 text-cyan-200 text-xs font-semibold rounded-lg mono transition flex items-center justify-center space-x-1.5">
+            <button onclick="prescribe('${p.id}', '${p.name}')" class="w-full py-2 px-3 bg-[#070D1F] hover:bg-[#00F0FF]/15 border border-[#00F0FF]/40 hover:border-[#00F0FF] text-[#00F0FF] text-xs font-orbitron font-bold rounded-xl transition-all shadow-neon-cyan flex items-center justify-center space-x-2">
               <i class="fa-solid fa-stethoscope text-[11px]"></i>
               <span>Prescribe Countermeasure</span>
             </button>
@@ -277,12 +335,17 @@
 
     async function injectScenario(id) {
       activeScenario = id;
-      document.querySelectorAll('[id^="scen-"]').forEach(el => {
-        el.className = "px-3 py-1.5 rounded-lg text-xs font-semibold mono transition-all bg-gray-900/80 border border-gray-700 text-gray-300 hover:border-cyan-500 hover:text-cyan-300";
+      ['nominal', 'spe', 'co2', 'sleep'].forEach(k => {
+        const btn = document.getElementById(`scen-${k}`);
+        if (btn) btn.className = "p-3.5 rounded-xl border text-left font-orbitron text-xs transition-all bg-[#070D1F] border-[#1E293B] text-gray-400 hover:border-gray-500";
       });
-      const activeBtn = document.getElementById(`scen-${id === 'co2_spike' ? 'co2' : id === 'sleep_deprivation' ? 'sleep' : id}`);
+      const activeKey = id === 'co2_spike' ? 'co2' : id === 'sleep_deprivation' ? 'sleep' : id;
+      const activeBtn = document.getElementById(`scen-${activeKey}`);
       if (activeBtn) {
-        activeBtn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold mono transition-all bg-cyan-950 border border-cyan-500 text-cyan-200 shadow-lg shadow-cyan-950/50";
+        if (id === 'nominal') activeBtn.className = "p-3.5 rounded-xl border text-left font-orbitron text-xs transition-all bg-emerald-950/60 border-emerald-500 text-emerald-200 shadow-lg shadow-emerald-950/50";
+        else if (id === 'spe') activeBtn.className = "p-3.5 rounded-xl border text-left font-orbitron text-xs transition-all bg-red-950/70 border-red-500 text-red-300 shadow-neon-red";
+        else if (id === 'co2_spike') activeBtn.className = "p-3.5 rounded-xl border text-left font-orbitron text-xs transition-all bg-amber-950/70 border-amber-500 text-amber-300 shadow-neon-amber";
+        else activeBtn.className = "p-3.5 rounded-xl border text-left font-orbitron text-xs transition-all bg-purple-950/70 border-purple-500 text-purple-300 shadow-lg shadow-purple-950/50";
       }
 
       await fetch(`${API}/api/simulator/scenario`, {
@@ -334,11 +397,11 @@
 
       const output = document.getElementById('ai-output');
       output.innerHTML += `
-        <div class="p-2.5 bg-blue-950/40 rounded border border-blue-500/30 text-blue-200">
-          <strong>User:</strong> ${msg}
+        <div class="p-3 bg-blue-950/40 rounded-xl border border-blue-500/30 text-blue-200">
+          <strong class="font-orbitron text-[10px] text-blue-400 block mb-1">MISSION COMMANDER:</strong> ${msg}
         </div>
-        <div class="p-2.5 bg-cyan-950/40 rounded border border-cyan-500/30 text-cyan-200 animate-pulse" id="temp-loading">
-          <i class="fa-solid fa-spinner fa-spin mr-1"></i> IBM Granite analyzing flight medical telemetry...
+        <div class="p-3 bg-cyan-950/40 rounded-xl border border-cyan-500/30 text-cyan-200 animate-pulse font-mono" id="temp-loading">
+          <i class="fa-solid fa-spinner fa-spin mr-1.5"></i> IBM Granite 3.0 analyzing multi-modal flight bio-telemetry...
         </div>
       `;
       output.scrollTop = output.scrollHeight;
@@ -352,9 +415,12 @@
         const data = await res.json();
         document.getElementById('temp-loading').remove();
         output.innerHTML += `
-          <div class="p-3 bg-black/60 rounded border border-cyan-500/50 text-gray-200">
-            <div class="text-cyan-400 font-bold mb-1">⬡ IBM GRANITE 3.0 RESPONSE:</div>
-            <p class="whitespace-pre-wrap">${data.reply}</p>
+          <div class="p-3.5 bg-[#070D1F] rounded-xl border border-cyan-500/50 text-gray-200 shadow-neon-cyan">
+            <div class="text-[#00F0FF] font-orbitron font-bold text-[10px] mb-1.5 flex items-center gap-1.5">
+              <i class="fa-solid fa-brain"></i>
+              <span>IBM GRANITE 3.0 CLINICAL RATIONALE:</span>
+            </div>
+            <p class="whitespace-pre-wrap leading-relaxed">${data.reply}</p>
           </div>
         `;
         output.scrollTop = output.scrollHeight;
@@ -366,10 +432,10 @@
     function setComms(name, delay) {
       document.getElementById('comms-delay-text').innerText = `${delay}s (${(delay/60).toFixed(1)} min one-way)`;
       ['iss', 'moon', 'mars'].forEach(k => {
-        document.getElementById(`btn-${k}`).className = "px-2.5 py-1 rounded text-xs mono bg-gray-800 text-gray-300 hover:bg-gray-700";
+        document.getElementById(`btn-${k}`).className = "px-3 py-1 rounded text-xs font-orbitron bg-[#070D1F] border border-[#1E293B] text-gray-300 hover:border-gray-500";
       });
       const btn = document.getElementById(`btn-${name.toLowerCase().replace(' ', '')}`);
-      if (btn) btn.className = "px-2.5 py-1 rounded text-xs mono bg-cyan-900 border border-cyan-500 text-cyan-200 font-bold";
+      if (btn) btn.className = "px-3 py-1 rounded text-xs font-orbitron bg-[#00F0FF]/20 border border-[#00F0FF] text-[#00F0FF] font-bold shadow-neon-cyan";
     }
 
     function initCharts() {
@@ -387,7 +453,7 @@
             { label: 'Sara Lin (HRV)', data: [68, 67, 69, 68, 67, 68, 69, 68, 67, 68, 69, 68], borderColor: '#10B981', tension: 0.3 }
           ]
         },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { grid: { color: '#1F293D' } }, x: { grid: { color: '#1F293D' } } } }
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { grid: { color: '#1E293B' } }, x: { grid: { color: '#1E293B' } } } }
       });
 
       const ctxRad = document.getElementById('radChart').getContext('2d');
@@ -395,9 +461,9 @@
         type: 'line',
         data: {
           labels: hours,
-          datasets: [{ label: 'Daily Flux (mGy)', data: [1.2, 1.3, 1.2, 1.5, 45.2, 87.4, 62.1, 14.5, 3.2, 1.4, 1.3, 1.2], borderColor: '#F59E0B', backgroundColor: 'rgba(245, 158, 11, 0.1)', fill: true, tension: 0.3 }]
+          datasets: [{ label: 'Daily Flux (mGy)', data: [1.2, 1.3, 1.2, 1.5, 45.2, 87.4, 62.1, 14.5, 3.2, 1.4, 1.3, 1.2], borderColor: '#F59E0B', backgroundColor: 'rgba(245, 158, 11, 0.15)', fill: true, tension: 0.3 }]
         },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { grid: { color: '#1F293D' } }, x: { grid: { color: '#1F293D' } } } }
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { grid: { color: '#1E293B' } }, x: { grid: { color: '#1E293B' } } } }
       });
 
       const ctxCO2 = document.getElementById('co2Chart').getContext('2d');
@@ -405,13 +471,12 @@
         type: 'line',
         data: {
           labels: hours,
-          datasets: [{ label: 'CO₂ ppm', data: [2600, 2700, 3100, 4200, 4950, 5120, 4600, 3800, 3100, 2800, 2650, 2600], borderColor: '#C084FC', backgroundColor: 'rgba(192, 132, 252, 0.1)', fill: true, tension: 0.3 }]
+          datasets: [{ label: 'CO₂ ppm', data: [2600, 2700, 3100, 4200, 4950, 5120, 4600, 3800, 3100, 2800, 2650, 2600], borderColor: '#C084FC', backgroundColor: 'rgba(192, 132, 252, 0.15)', fill: true, tension: 0.3 }]
         },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { grid: { color: '#1F293D' } }, x: { grid: { color: '#1F293D' } } } }
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { grid: { color: '#1E293B' } }, x: { grid: { color: '#1E293B' } } } }
       });
     }
 
-    // Init
     window.addEventListener('DOMContentLoaded', () => {
       initCharts();
       fetchStatus();

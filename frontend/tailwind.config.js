@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -9,21 +10,27 @@ module.exports = {
     extend: {
       colors: {
         mission: {
-          bg:      '#0B0F19',
-          surface: '#111827',
-          card:    '#1A2236',
-          border:  '#1F2D45',
+          bg:      '#050811',
+          surface: '#0B0F19',
+          card:    '#101726',
+          border:  '#1E293B',
           cyan:    '#00F0FF',
           emerald: '#10B981',
           amber:   '#F59E0B',
           crimson: '#EF4444',
-          muted:   '#6B7280',
-          text:    '#E5E7EB',
+          muted:   '#64748B',
+          text:    '#F1F5F9',
         },
       },
       fontFamily: {
-        mono: ['JetBrains Mono', 'Fira Code', 'Consolas', 'monospace'],
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        orbitron: ['var(--font-orbitron)', 'sans-serif'],
+        mono: ['var(--font-mono)', 'monospace'],
+        sans: ['var(--font-sans)', 'sans-serif'],
+      },
+      boxShadow: {
+        'neon-cyan': '0 0 15px rgba(0, 240, 255, 0.25)',
+        'neon-red': '0 0 15px rgba(239, 68, 68, 0.3)',
+        'neon-amber': '0 0 15px rgba(245, 158, 11, 0.25)',
       },
       animation: {
         pulse_slow: 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
