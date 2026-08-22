@@ -18,7 +18,7 @@
 *Theme: Advance Space Exploration with AI — Human Spaceflight, Life Support & Crew Resilience*
 
 [![IBM watsonx.ai](https://img.shields.io/badge/IBM-watsonx.ai-054ADA?style=flat-square&logo=ibm)](https://www.ibm.com/watsonx)
-[![Granite 3.0](https://img.shields.io/badge/IBM-Granite%203.0-00539C?style=flat-square&logo=ibm)](https://www.ibm.com/granite)
+[![Granite 4](https://img.shields.io/badge/IBM-Granite%204-00539C?style=flat-square&logo=ibm)](https://www.ibm.com/granite)
 [![NASA-STD-3001](https://img.shields.io/badge/NASA-STD--3001-FC3D21?style=flat-square)](https://www.nasa.gov/hhp/hf-std3001)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com)
 [![Next.js 14](https://img.shields.io/badge/Next.js-14-000000?style=flat-square&logo=next.js)](https://nextjs.org)
@@ -65,7 +65,7 @@ Consider the clinical realities:
 │  └──────────────────────────┬──────────────────────────────────────────┘   │
 │                             │                                               │
 │  ┌──────────────────────────▼──────────────────────────────────────────┐   │
-│  │           IBM GRANITE 3.0 CLINICAL AGENT (watsonx.ai)               │   │
+│  │      IBM GRANITE 4 CLINICAL AGENT (granite-4-h-small / watsonx.ai)  │   │
 │  │                                                                     │   │
 │  │  Clinical RAG ←── NASA SP-2010-3407 protocol retrieval              │   │
 │  │  generate_executive_briefing() → Commander daily situation report   │   │
@@ -144,8 +144,8 @@ Bob integrated `scikit-learn` IsolationForest anomaly detection trained on histo
 | Technology | Role in AegisCrew AI |
 |---|---|
 | **IBM Bob IDE** | Primary development environment — full-stack scaffolding, NASA data modeling, Granite prompt engineering, scenario simulation design |
-| **IBM watsonx.ai** | Production inference endpoint for IBM Granite 3.0 — clinical briefing generation, countermeasure prescription, interactive Q&A |
-| **IBM Granite 3-8B-Instruct** | Core AI model (`ibm/granite-3-8b-instruct`) — autonomous flight surgeon reasoning, NASA SP-2010-3407 grounded clinical decision synthesis |
+| **IBM watsonx.ai** | Production inference endpoint — clinical briefing generation, countermeasure prescription, interactive Q&A via `model.chat()` API |
+| **IBM Granite 4** | Core AI model (`ibm/granite-4-h-small`) — autonomous flight surgeon reasoning, NASA SP-2010-3407 grounded clinical decision synthesis. **Live inference verified.** Project ID configured via `backend/.env`. |
 
 ---
 
@@ -169,7 +169,7 @@ Bob integrated `scikit-learn` IsolationForest anomaly detection trained on histo
 ### Prerequisites
 - Python 3.11+
 - Node.js 20+
-- (Optional) IBM watsonx.ai API key and Project ID for live Granite inference
+- (Optional) IBM watsonx.ai API key and Project ID for live Granite 4 inference
 
 ### 1. Clone & Configure
 
@@ -178,34 +178,32 @@ git clone https://github.com/AmanM006/aegiscrew-ai.git
 cd aegiscrew-ai
 ```
 
-Create `.env` in `backend/` (optional — app runs in mock mode without it):
+Create `backend/.env` (optional — app runs in deterministic mock mode without it):
+
 ```bash
 # backend/.env
 WATSONX_API_KEY=your_ibm_cloud_api_key
 WATSONX_PROJECT_ID=your_watsonx_project_id
 WATSONX_URL=https://us-south.ml.cloud.ibm.com
+GRANITE_MODEL_ID=ibm/granite-4-h-small
 ```
 
-### 2. Backend (FastAPI)
+See `backend/.env.example` for all options.
 
-```bash
-cd aegiscrew-ai/backend
-pip install -r requirements.txt
+### 2. Backend — Terminal 1
 
-# Run from repo root so that data/ paths resolve correctly
-cd ../../
-uvicorn aegiscrew-ai.backend.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-**Or from the backend directory with explicit PYTHONPATH:**
 ```bash
 cd aegiscrew-ai
-PYTHONPATH=. uvicorn backend.main:app --reload --port 8000
+pip install -r backend/requirements.txt
+
+# PYTHONPATH=. ensures backend.* module imports resolve correctly
+python -m uvicorn backend.main:app --port 8000 --reload
 ```
 
-API docs available at: [http://localhost:8000/docs](http://localhost:8000/docs)
+- API Health Check: [http://localhost:8000/](http://localhost:8000/)
+- Interactive API Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 
-### 3. Frontend (Next.js)
+### 3. Frontend — Terminal 2
 
 ```bash
 cd aegiscrew-ai/frontend
@@ -213,17 +211,18 @@ npm install
 npm run dev
 ```
 
-Open: [http://localhost:3000](http://localhost:3000)
+- **Mission Control UI: [http://localhost:3000](http://localhost:3000)**
 
 ### 4. Try the Live Demo
 
-1. Open Mission Control at `http://localhost:3000`
+1. Open Mission Control at **`http://localhost:3000`**
 2. The comms banner shows **"Deep Space Autonomous AI Mode Active — Zero Ground Dependency"**
-3. Click **Solar Flare** in the Emergency Simulator — watch ASTRO-02 (Jensen) go RED
-4. Click **⚕ Prescribe Countermeasures** on Jensen's card
-5. Switch to the **IBM Granite 3.0 — AI Flight Surgeon** panel
-6. Click **⟳ Refresh Briefing** for the daily situation report
-7. Chat with the AI: *"Why is ASTRO-02's radiation at emergency levels?"*
+3. Watch the **Decision Timer progress bar** — AI responded in <1s, Earth reply still 19+ minutes away
+4. Click **☢ Solar Particle Event** — ASTRO-02 (Jensen) goes RED, EVA HALT alert fires with sound
+5. Click **Prescribe Countermeasure** on Jensen's card → structured NASA protocol card appears
+6. Switch to the **AI Explainability** tab — see the 4-stage ML→Rules→RAG→Granite 4 pipeline
+7. Chat: *"Why is ASTRO-02's radiation at emergency levels?"*
+8. Click **CO₂ Spike** — SystemAlertBanner fires with ENVIRONMENTAL CRITICAL cross-crew root cause
 
 ---
 
@@ -234,55 +233,66 @@ aegiscrew-ai/
 ├── README.md
 ├── backend/
 │   ├── requirements.txt
-│   ├── main.py                          # FastAPI app + all endpoints
+│   ├── main.py                          # FastAPI v4.0.0 — pure REST API (no static files)
+│   ├── .env.example                     # Credential template (copy to .env)
 │   ├── core/
-│   │   ├── config.py                    # Central config + NASA data paths
-│   │   └── telemetry_schema.py          # Pydantic v2 schemas (TelemetryFrame, RiskAssessment...)
+│   │   ├── config.py                    # Central config + NASA data paths + model ID
+│   │   └── telemetry_schema.py          # Pydantic v2 schemas (TelemetryFrame, AnomalyResult...)
 │   ├── data/
 │   │   ├── nasa_loader.py               # JSON + CSV ingestors (cached)
 │   │   └── telemetry_streamer.py        # CSV→TelemetryFrame converter + scenario overrides
 │   ├── ml_engine/
 │   │   ├── risk_scorer.py               # Composite risk scoring (fatigue / cardio / radiation)
+│   │   ├── anomaly_detector.py          # IsolationForest anomaly detection (sklearn)
+│   │   ├── correlation_engine.py        # Cross-crew pattern detection → crew_wide_alert
+│   │   ├── prediction_engine.py         # Linear trajectory → +6h readiness forecast
 │   │   ├── fatigue_model.py             # Three-process Borbély fatigue + PVT trend analysis
-│   │   └── radiation_monitor.py        # SPE detection + EVA clearance + career dose tracking
+│   │   └── radiation_monitor.py         # SPE detection + EVA clearance + career dose tracking
 │   ├── agents/
-│   │   ├── flight_surgeon_granite.py    # IBM Granite 3.0 agent + mock fallback
+│   │   ├── flight_surgeon_granite.py    # IBM Granite 4 agent (model.chat() API) + mock fallback
 │   │   └── clinical_rag.py              # NASA SP-2010-3407 protocol RAG retrieval
 │   └── simulator/
 │       └── scenario_manager.py          # 4-scenario emergency injection system
-└── frontend/
-    ├── package.json
+└── frontend/                            # AUTHORITATIVE UI — Next.js 14 on port 3000
+    ├── package.json                     # v4.0.0 — lodash + recharts + lucide-react pinned
     ├── tsconfig.json
     ├── tailwind.config.js
     ├── next.config.js
     ├── app/
-    │   ├── layout.tsx                   # Root layout + metadata
-    │   ├── page.tsx                     # Mission Control main page
-    │   └── globals.css                  # Space-grade dark theme
+    │   ├── layout.tsx                   # Root layout + Google Fonts via <link>
+    │   ├── page.tsx                     # Mission Control main page (10s polling)
+    │   └── globals.css                  # Space-grade dark theme + CSS font variables
     ├── components/
     │   ├── Header.tsx                   # MET clock + fleet readiness + IBM badge
     │   ├── CommsDelayBanner.tsx         # ISS/Lunar/Mars mode switcher + autonomous banner
     │   ├── EmergencySimulator.tsx       # 4 scenario pill buttons (judge demo controls)
     │   ├── CrewMatrix.tsx               # 4-card crew grid orchestrator
-    │   ├── AstronautCard.tsx            # Digital twin card + SVG gauge + prescribe button
+    │   ├── AstronautCard.tsx            # SVG readiness gauge + ML badge + +6h prediction
     │   ├── TelemetryCharts.tsx          # Recharts multi-stream 24-hr telemetry
-    │   └── FlightSurgeonAI.tsx          # Granite terminal + countermeasure cards + chat
+    │   ├── FlightSurgeonAI.tsx          # 4-tab Granite terminal + 4-stage explainability pipeline
+    │   ├── SystemAlertBanner.tsx        # Cross-crew ENVIRONMENTAL CRITICAL alert banner
+    │   └── DecisionTimer.tsx            # Animated progress bar: AI <1s vs 22-min Earth delay
     └── types/
-        └── telemetry.ts                 # Full TypeScript type definitions
+        └── telemetry.ts                 # Full TypeScript type definitions (v3 — ML + Prediction)
 ```
 
 ---
 
 ## 🔌 API Reference
 
+Base URL: `http://localhost:8000`
+
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/api/crew/status` | Full crew state for all 4 astronauts with risk assessments |
+| `GET` | `/` | JSON health check — service status, model, active scenario |
+| `GET` | `/docs` | Interactive Swagger UI for all endpoints |
+| `GET` | `/api/crew/status` | Full crew state for all 4 astronauts with risk, ML, prediction |
 | `GET` | `/api/crew/{id}/history` | 24-hr telemetry history for specific crew member |
 | `POST` | `/api/simulator/scenario` | Activate emergency scenario (`nominal`/`spe`/`co2_spike`/`sleep_deprivation`) |
-| `POST` | `/api/agent/briefing` | Generate Granite 3.0 daily executive briefing |
+| `POST` | `/api/agent/briefing` | Generate IBM Granite 4 daily executive briefing |
 | `POST` | `/api/agent/prescribe` | Generate targeted countermeasures for crew member |
-| `POST` | `/api/agent/chat` | Interactive Q&A with the AI flight surgeon |
+| `POST` | `/api/agent/chat` | Interactive Q&A with the IBM Granite 4 flight surgeon |
+| `GET` | `/api/debug/correlation` | Debug — raw cross-crew correlation engine output |
 
 ---
 
@@ -302,6 +312,6 @@ AegisCrew AI demonstrates **three convergent innovations** for deep space human 
 
 **AegisCrew AI** — *Because the crew 140 million miles from Earth deserves a doctor that never sleeps.*
 
-Built with ❤️ using IBM Bob · IBM watsonx.ai · IBM Granite 3.0
+Built with IBM Bob · IBM watsonx.ai · IBM Granite 4 (`ibm/granite-4-h-small`)
 
 </div>

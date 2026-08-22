@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 :root {
+  /* Mission Control colours */
   --bg:      #060913;
   --surface: #0C1222;
   --card:    #0F172A;
@@ -13,6 +14,11 @@
   --crimson: #EF4444;
   --text:    #E2E8F0;
   --muted:   #64748B;
+
+  /* Font CSS variables — referenced by tailwind.config.js fontFamily */
+  --font-orbitron: 'Orbitron', sans-serif;
+  --font-mono:     'JetBrains Mono', 'Fira Code', monospace;
+  --font-sans:     'Space Grotesk', 'Inter', system-ui, sans-serif;
 }
 
 * {

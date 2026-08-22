@@ -149,9 +149,9 @@ function ExplainabilityChain({ astro }: { astro: AstronautStateResponse }) {
   )
 
   // RAG: list the top clinical references cited by anomalies
-  const ragItems = [...new Set(
+  const ragItems = Array.from(new Set(
     anomalies.flatMap(a => a.protocol_id ? [`Protocol: ${a.protocol_id}`] : [])
-  )]
+  ))
   if (ragItems.length === 0 && anomalies.length > 0) ragItems.push('NASA-STD-3001', 'SP-2010-3407')
 
   const graniteItems = cms.map(cm => `[${cm.protocol_id}] ${cm.title}`)
@@ -190,7 +190,7 @@ function ExplainabilityChain({ astro }: { astro: AstronautStateResponse }) {
         />
         <PipelineStage
           color="#10B981"
-          label="Granite 3.0"
+          label="Granite 4"
           sub="Countermeasure synthesis"
           items={graniteItems}
           active={cms.length > 0}
@@ -225,7 +225,7 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase }: 
   // Fire sound on new RED transitions
   useEffect(() => {
     const currentRed = new Set(crewState.crew.filter(a => a.risk.status === 'RED').map(a => a.profile.id))
-    const newRed = [...currentRed].filter(id => !prevRedCrew.current.has(id))
+    const newRed = Array.from(currentRed).filter(id => !prevRedCrew.current.has(id))
     if (newRed.length > 0) playAlertTone()
     prevRedCrew.current = currentRed
   }, [crewState])
@@ -278,7 +278,7 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase }: 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xs font-mono font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
           <BrainCircuit className="w-4 h-4 text-sky-400" />
-          IBM Granite 3.0 — AI Flight Surgeon
+          IBM Granite 4 — AI Flight Surgeon
         </h2>
         <div className="flex items-center gap-2">
           {briefing?.mock_mode && (
@@ -336,7 +336,7 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase }: 
             {briefingLoading ? (
               <div className="flex items-center gap-1.5 text-sky-400">
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>IBM Granite 3.0 synthesizing clinical briefing...</span>
+                <span>IBM Granite 4 synthesizing clinical briefing...</span>
               </div>
             ) : (
               briefing?.briefing || 'Click "Refresh" to generate the daily executive situation report.'
@@ -361,7 +361,7 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase }: 
         {tab === 'chain' && (
           <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
             <p className="text-[10px] text-slate-500 font-mono">
-              Tracing the decision pipeline: ML z-scores → threshold rules → Granite 3.0 prescription, per crew member.
+              Tracing the decision pipeline: ML z-scores → threshold rules → Granite 4 prescription, per crew member.
             </p>
             {crewState.crew.map((astro) => (
               <ExplainabilityChain key={astro.profile.id} astro={astro} />
@@ -384,7 +384,7 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase }: 
                   <div className="font-bold text-[10px] mb-1">
                     {m.role === 'user'
                       ? <span className="text-sky-400">COMMANDER</span>
-                      : <span className="text-slate-400">IBM GRANITE 3.0 FLIGHT SURGEON</span>
+                      : <span className="text-slate-400">IBM GRANITE 4 FLIGHT SURGEON</span>
                     }
                   </div>
                   <div className="whitespace-pre-wrap text-[11px]">{m.content}</div>

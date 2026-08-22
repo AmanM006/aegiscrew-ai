@@ -64,7 +64,7 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
 app = FastAPI(
     title="AegisCrew AI",
     description="Autonomous Deep-Space Chief Medical Officer & Bio-Telemetry Intelligence Platform",
-    version="1.0.0",
+    version="4.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan,
@@ -190,41 +190,23 @@ def _build_crew_state(scenario: str = "nominal") -> CrewStateResponse:
     )
 
 
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-import os
+# ---------------------------------------------------------------------------
+# Health-check root endpoint (JSON only — frontend is Next.js on port 3000)
+# ---------------------------------------------------------------------------
 
-STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
-if os.path.exists(STATIC_DIR):
-    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-
-@app.get("/", tags=["hero"])
-def serve_hero():
-    index_file = os.path.join(STATIC_DIR, "index.html")
-    if os.path.exists(index_file):
-        return FileResponse(index_file)
+@app.get("/", tags=["health"])
+def health_check():
+    """API health check. Mission Control UI: http://localhost:3000"""
     return {
-        "service": "AegisCrew AI",
-        "status": "operational",
+        "status": "online",
+        "service": "AegisCrew AI API",
+        "version": "4.0.0",
+        "model": "ibm/granite-4-h-small",
         "mock_mode": WATSONX_MOCK_MODE,
         "active_scenario": get_active_scenario(),
+        "docs": "/docs",
+        "frontend": "http://localhost:3000",
     }
-
-@app.get("/dashboard", tags=["dashboard"])
-def serve_dashboard():
-    dash_file = os.path.join(STATIC_DIR, "dashboard.html")
-    if os.path.exists(dash_file):
-        return FileResponse(dash_file)
-    index_file = os.path.join(STATIC_DIR, "index.html")
-    if os.path.exists(index_file):
-        return FileResponse(index_file)
-    return {
-        "service": "AegisCrew AI",
-        "status": "operational",
-        "mock_mode": WATSONX_MOCK_MODE,
-        "active_scenario": get_active_scenario(),
-    }
-
 
 
 
@@ -267,7 +249,7 @@ def list_scenarios():
 @app.post("/api/agent/briefing", response_model=AgentBriefingResponse, tags=["agent"])
 def get_briefing(req: AgentBriefingRequest):
     """
-    Generate IBM Granite 3.0 daily executive briefing for Mission Commander.
+    Generate IBM Granite 4 daily executive briefing for Mission Commander.
     """
     crew_state = _build_crew_state(get_active_scenario())
     return generate_executive_briefing(crew_state)

@@ -1,25 +1,6 @@
 import type { Metadata } from 'next'
-import { Orbitron, JetBrains_Mono, Space_Grotesk } from 'next/font/google'
 import SmoothScroll from '@/components/SmoothScroll'
 import './globals.css'
-
-const orbitron = Orbitron({
-  subsets: ['latin'],
-  variable: '--font-orbitron',
-  weight: ['400', '600', '700', '900'],
-})
-
-const mono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono',
-  weight: ['400', '500', '700'],
-})
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  variable: '--font-sans',
-  weight: ['300', '400', '500', '600', '700'],
-})
 
 export const metadata: Metadata = {
   title: 'AegisCrew AI — Autonomous Deep-Space Chief Medical Officer',
@@ -31,7 +12,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`dark ${spaceGrotesk.variable} ${orbitron.variable} ${mono.variable}`}>
+    <html lang="en" className="dark">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Orbitron:wght@400;600;700;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+      </head>
       <body className="bg-[#050811] text-[#E5E7EB] antialiased selection:bg-[#00F0FF]/20 selection:text-[#00F0FF]">
         <SmoothScroll>
           {children}
