@@ -44,18 +44,13 @@ def _get_watsonx_model():
     try:
         from ibm_watsonx_ai import Credentials
         from ibm_watsonx_ai.foundation_models import ModelInference
-        from ibm_watsonx_ai.metanames import GenTextParamsMetaNames as GenParams
 
         creds = Credentials(url=WATSONX_URL, api_key=WATSONX_API_KEY)
+        # Use chat API params (granite-4 uses max_tokens not max_new_tokens)
         _wx_model = ModelInference(
             model_id=GRANITE_MODEL_ID,
             credentials=creds,
             project_id=WATSONX_PROJECT_ID,
-            params={
-                GenParams.MAX_NEW_TOKENS: 800,
-                GenParams.TEMPERATURE: 0.2,
-                GenParams.REPETITION_PENALTY: 1.1,
-            },
         )
         logger.info("IBM watsonx.ai Granite model initialised: %s", GRANITE_MODEL_ID)
     except Exception as exc:
@@ -80,18 +75,22 @@ _SYSTEM_PROMPT = (
 
 def _call_granite(prompt: str) -> tuple[str, bool]:
     """
-    Send prompt to IBM Granite 3.0.
+    Send prompt to IBM Granite via the chat API (non-deprecated).
     Returns (response_text, mock_mode_bool).
     """
     model = _get_watsonx_model()
     if model is None:
         return None, True   # signal mock fallback
     try:
-        full_prompt = f"<|system|>\n{_SYSTEM_PROMPT}\n<|user|>\n{prompt}\n<|assistant|>\n"
-        result = model.generate_text(prompt=full_prompt)
-        return result, False
+        messages = [
+            {"role": "system", "content": _SYSTEM_PROMPT},
+            {"role": "user",   "content": prompt},
+        ]
+        result = model.chat(messages=messages, params={"max_tokens": 800, "temperature": 0.2})
+        text = result["choices"][0]["message"]["content"]
+        return text, False
     except Exception as exc:
-        logger.error("Granite generation error: %s", exc)
+        logger.error("Granite chat API error: %s", exc)
         return None, True
 
 
@@ -158,7 +157,7 @@ ML anomaly detection (trained on 1,440 NASA OSDR historical samples). Cross-crew
 engine is monitoring for shared environmental root causes. No ground flight surgeon uplink
 required for current operational cycle.
 
-[IBM Granite 3-8B-Instruct | AegisCrew AI | NASA SP-2010-3407 | Mock Mode — Set WATSONX_API_KEY for live inference]"""
+[IBM Granite 4 (granite-4-h-small) | AegisCrew AI | NASA SP-2010-3407 | Mock Mode — Set WATSONX_API_KEY for live inference]"""
 
 
 def _mock_prescribe(crew_id: str, anomaly_desc: str) -> str:
@@ -183,7 +182,7 @@ PROTOCOL PROT-RAD-SPE-03 (if SPE active):
   → Continuous active dosimeter monitoring until SPE ALL-CLEAR
   Citation: NASA NSCR-2020; Cucinotta et al. 2017
 
-[IBM Granite 3-8B-Instruct | Mock Mode]"""
+[IBM Granite 4 (granite-4-h-small) | Mock Mode]"""
 
 
 def _mock_chat(message: str, scenario: str) -> str:
@@ -206,7 +205,7 @@ Risk algorithms are grounded in:
 For specific crew member analysis, trigger a scenario via the Emergency Simulator or
 query individual crew risk assessments via /api/crew/status.
 
-[IBM Granite 3-8B-Instruct | AegisCrew AI | Mock Mode — Configure WATSONX_API_KEY for live AI responses]"""
+[IBM Granite 4 (granite-4-h-small) | AegisCrew AI | Mock Mode — Configure WATSONX_API_KEY for live AI responses]"""
 
 
 # ---------------------------------------------------------------------------

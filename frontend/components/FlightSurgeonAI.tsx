@@ -87,81 +87,116 @@ function CountermeasureCard({ cm }: { cm: Countermeasure }) {
   )
 }
 
-// ─── Explainability chain ─────────────────────────────────────────────────────
+// ─── 4-Stage horizontal explainability pipeline ───────────────────────────────
+interface StageProps {
+  color: string
+  label: string
+  sub: string
+  items: string[]
+  active: boolean
+  last?: boolean
+}
+
+function PipelineStage({ color, label, sub, items, active, last }: StageProps) {
+  return (
+    <div className="flex items-stretch gap-0 flex-1 min-w-0">
+      <div className={`flex-1 min-w-0 rounded-lg border p-2.5 transition-colors ${active ? '' : 'opacity-40'}`}
+        style={{ borderColor: color + '40', background: color + '08' }}>
+        {/* Stage header */}
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
+          <span className="text-[9px] font-mono font-bold uppercase tracking-wide" style={{ color }}>{label}</span>
+        </div>
+        <div className="text-[9px] text-slate-500 font-mono mb-1.5 leading-tight">{sub}</div>
+        {/* Items */}
+        <div className="space-y-0.5">
+          {items.slice(0, 3).map((item, i) => (
+            <div key={i} className="text-[8px] font-mono text-slate-400 truncate leading-snug">{item}</div>
+          ))}
+          {items.length === 0 && (
+            <div className="text-[8px] font-mono text-slate-600 italic">nominal</div>
+          )}
+        </div>
+      </div>
+      {/* Arrow connector */}
+      {!last && (
+        <div className="flex items-center px-0.5 flex-shrink-0">
+          <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
+            <path d="M0 5h10M7 1l4 4-4 4" stroke="#334155" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ExplainabilityChain({ astro }: { astro: AstronautStateResponse }) {
-  const mlFeats     = astro.risk.ml_result?.contributing_features ?? []
-  const anomalies   = astro.risk.anomalies
-  const cms         = astro.active_countermeasures
-  const isAnomaly   = astro.risk.ml_result?.is_anomaly ?? false
-  const mlScore     = astro.risk.ml_anomaly_score
+  const mlFeats   = astro.risk.ml_result?.contributing_features ?? []
+  const anomalies = astro.risk.anomalies
+  const cms       = astro.active_countermeasures
+  const isAnomaly = astro.risk.ml_result?.is_anomaly ?? false
+  const mlScore   = astro.risk.ml_anomaly_score
 
   if (anomalies.length === 0 && mlFeats.length === 0) return null
 
+  // Stage content
+  const mlItems = mlFeats.length > 0
+    ? [`Score: ${mlScore.toFixed(0)}  ${isAnomaly ? '⚠ ANOMALY' : '✓ normal'}`, ...mlFeats.slice(0, 2)]
+    : []
+
+  const ruleItems = anomalies.map(
+    a => `[${a.protocol_id ?? '?'}] ${a.category}: ${a.value.toFixed(1)} vs ${a.threshold.toFixed(1)}`
+  )
+
+  // RAG: list the top clinical references cited by anomalies
+  const ragItems = [...new Set(
+    anomalies.flatMap(a => a.protocol_id ? [`Protocol: ${a.protocol_id}`] : [])
+  )]
+  if (ragItems.length === 0 && anomalies.length > 0) ragItems.push('NASA-STD-3001', 'SP-2010-3407')
+
+  const graniteItems = cms.map(cm => `[${cm.protocol_id}] ${cm.title}`)
+
   return (
     <div className="rounded-lg border border-[#1A2438] bg-[#060B14] p-3 space-y-2">
+      {/* Title */}
       <div className="flex items-center gap-1.5 text-[9px] font-mono text-slate-400 uppercase tracking-wider">
         <Link2 className="w-3 h-3 text-sky-400" />
-        <span>AI Explainability Chain — {astro.profile.name}</span>
+        <span>AI Decision Pipeline — {astro.profile.name}</span>
+        <span className="ml-auto text-[8px] text-slate-600">ibm/granite-4-h-small</span>
       </div>
 
-      {/* Step 1: ML signal */}
-      {mlFeats.length > 0 && (
-        <div className="flex items-start gap-2">
-          <div className="flex flex-col items-center gap-0.5 flex-shrink-0 mt-0.5">
-            <div className={`w-2 h-2 rounded-full border-2 ${isAnomaly ? 'bg-red-500 border-red-400' : 'bg-emerald-500 border-emerald-400'}`} />
-            <div className="w-px h-4 bg-slate-700" />
-          </div>
-          <div>
-            <span className="text-[9px] font-mono font-bold text-slate-300">IsolationForest (ML score: {mlScore.toFixed(0)})</span>
-            <div className="flex flex-wrap gap-1 mt-0.5">
-              {mlFeats.map((f, i) => (
-                <span key={i} className="text-[8px] font-mono px-1 py-0.5 bg-slate-800 text-slate-400 rounded border border-slate-700/50">
-                  {f}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Step 2: threshold rules */}
-      {anomalies.length > 0 && (
-        <div className="flex items-start gap-2">
-          <div className="flex flex-col items-center gap-0.5 flex-shrink-0 mt-0.5">
-            <div className="w-2 h-2 rounded-full bg-amber-500 border-2 border-amber-400" />
-            <div className="w-px h-4 bg-slate-700" />
-          </div>
-          <div>
-            <span className="text-[9px] font-mono font-bold text-slate-300">Rule Engine ({anomalies.length} alert{anomalies.length !== 1 ? 's' : ''})</span>
-            <div className="space-y-0.5 mt-0.5">
-              {anomalies.slice(0, 2).map((a, i) => (
-                <div key={i} className="text-[8px] font-mono text-slate-500 truncate">
-                  [{a.protocol_id ?? '—'}] {a.category}: {a.value.toFixed(1)} vs threshold {a.threshold.toFixed(1)}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Step 3: Granite prescription */}
-      {cms.length > 0 && (
-        <div className="flex items-start gap-2">
-          <div className="flex flex-col items-center gap-0.5 flex-shrink-0 mt-0.5">
-            <div className="w-2 h-2 rounded-full bg-sky-500 border-2 border-sky-400" />
-          </div>
-          <div>
-            <span className="text-[9px] font-mono font-bold text-sky-400">IBM Granite 3.0 → Prescribed</span>
-            <div className="space-y-0.5 mt-0.5">
-              {cms.slice(0, 2).map((cm, i) => (
-                <div key={i} className="text-[8px] font-mono text-slate-400">
-                  [{cm.protocol_id}] {cm.title}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 4-stage horizontal pipeline */}
+      <div className="flex items-stretch gap-0">
+        <PipelineStage
+          color="#A855F7"
+          label="ML Engine"
+          sub="IsolationForest"
+          items={mlItems}
+          active={mlFeats.length > 0}
+        />
+        <PipelineStage
+          color="#F59E0B"
+          label="Rule Engine"
+          sub="NASA-STD-3001 thresholds"
+          items={ruleItems}
+          active={anomalies.length > 0}
+        />
+        <PipelineStage
+          color="#00F0FF"
+          label="Clinical RAG"
+          sub="SP-2010-3407 protocols"
+          items={ragItems}
+          active={ragItems.length > 0}
+        />
+        <PipelineStage
+          color="#10B981"
+          label="Granite 3.0"
+          sub="Countermeasure synthesis"
+          items={graniteItems}
+          active={cms.length > 0}
+          last
+        />
+      </div>
     </div>
   )
 }
@@ -251,7 +286,7 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase }: 
               MOCK MODE
             </span>
           )}
-          <span className="text-[10px] text-slate-500 font-mono hidden sm:block">ibm/granite-3-8b-instruct</span>
+          <span className="text-[10px] text-slate-500 font-mono hidden sm:block">ibm/granite-4-h-small</span>
         </div>
       </div>
 

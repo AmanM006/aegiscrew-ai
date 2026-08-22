@@ -35,7 +35,9 @@ NASA_TIMESERIES_PATH = DATA_DIR / "nasa_osdr" / "nasa_iss_timeseries_dataset.csv
 WATSONX_API_KEY    = os.getenv("WATSONX_API_KEY", "")
 WATSONX_PROJECT_ID = os.getenv("WATSONX_PROJECT_ID", "")
 WATSONX_URL        = os.getenv("WATSONX_URL", "https://us-south.ml.cloud.ibm.com")
-GRANITE_MODEL_ID   = os.getenv("GRANITE_MODEL_ID", "ibm/granite-3-8b-instruct")
+# granite-4-h-small is the latest Granite available on this project's watsonx.ai instance.
+# Override with GRANITE_MODEL_ID env var if needed.
+GRANITE_MODEL_ID   = os.getenv("GRANITE_MODEL_ID", "ibm/granite-4-h-small")
 
 # If credentials are missing, the agent falls back to deterministic mock responses
 WATSONX_MOCK_MODE: bool = not (WATSONX_API_KEY and WATSONX_PROJECT_ID)
