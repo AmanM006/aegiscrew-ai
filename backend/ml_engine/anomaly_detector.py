@@ -10,15 +10,14 @@ the CSV has insufficient data.
 from __future__ import annotations
 
 import logging
-import math
-from dataclasses import dataclass, field
-from functools import lru_cache
+from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
 
-from backend.core.telemetry_schema import TelemetryFrame
+# Import the canonical Pydantic AnomalyResult — do NOT redefine it here
+from backend.core.telemetry_schema import AnomalyResult, TelemetryFrame
 from backend.data.nasa_loader import load_timeseries_dataframe
 
 logger = logging.getLogger(__name__)
@@ -45,16 +44,6 @@ FEATURE_LABELS = {
     "pvt_reaction_time_ms":"PVT Reaction Time Degradation",
     "core_temp_c":         "Core Temperature Deviation",
 }
-
-
-@dataclass
-class AnomalyResult:
-    crew_id: str
-    anomaly_score: float           # 0–100, higher = more anomalous
-    is_anomaly: bool
-    contributing_features: List[str]
-    confidence_str: str            # e.g. "87% confidence · 360 samples"
-    training_samples: int
 
 
 @dataclass
