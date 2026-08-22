@@ -68,15 +68,29 @@ export default function TelemetryCharts({ crew }: Props) {
   const radData   = mergeCrewSeries(crewData, f => f.radiation.daily_radiation_mgy)
   const co2Data   = mergeCrewSeries(crewData, f => f.atmosphere.cabin_co2_ppm)
 
-  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: number }) => {
+  // Per-chart unit suffix — passed as a prop to CustomTooltip
+  function CustomTooltip({
+    active, payload, unit,
+  }: {
+    active?: boolean
+    payload?: { name: string; value: number; color: string }[]
+    label?: number
+    unit?: string
+  }) {
     if (!active || !payload?.length) return null
     return (
-      <div className="bg-[#1A2236] border border-[#1F2D45] rounded-lg p-2 text-[10px] font-mono">
-        {payload.map(p => (
-          <div key={p.name} style={{ color: p.color }}>
-            {crewData.find(c => c.id === p.name)?.name ?? p.name}: {p.value}
-          </div>
-        ))}
+      <div className="bg-[#1A2236] border border-[#1F2D45] rounded-lg p-2 text-[10px] font-mono space-y-0.5 shadow-lg">
+        {payload.map(p => {
+          const name = crewData.find(c => c.id === p.name)?.name ?? p.name
+          const val  = typeof p.value === 'number' ? p.value.toFixed(1) : p.value
+          return (
+            <div key={p.name} className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: p.color }} />
+              <span style={{ color: p.color }}>{name}:</span>
+              <span className="text-white font-semibold">{val}{unit ?? ''}</span>
+            </div>
+          )
+        })}
       </div>
     )
   }
@@ -102,7 +116,7 @@ export default function TelemetryCharts({ crew }: Props) {
               <CartesianGrid strokeDasharray="3 3" stroke="#1F2D45" />
               <XAxis dataKey="t" tick={TICK_STYLE} tickLine={false} axisLine={false} />
               <YAxis tick={TICK_STYLE} tickLine={false} axisLine={false} domain={[0, 90]} width={28} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip unit=" ms" />} />
               <ReferenceLine y={30} stroke="#EF4444" strokeDasharray="4 2" label={{ value: '⚠ 30ms', fill: '#EF4444', fontSize: 9 }} />
               {crewData.map((c, i) => (
                 <Line key={c.id} type="monotone" dataKey={c.id} stroke={CREW_COLORS[i]}
@@ -122,7 +136,7 @@ export default function TelemetryCharts({ crew }: Props) {
               <CartesianGrid strokeDasharray="3 3" stroke="#1F2D45" />
               <XAxis dataKey="t" tick={TICK_STYLE} tickLine={false} axisLine={false} />
               <YAxis tick={TICK_STYLE} tickLine={false} axisLine={false} domain={[40, 140]} width={28} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip unit=" bpm" />} />
               <ReferenceLine y={100} stroke="#EF4444" strokeDasharray="4 2" label={{ value: '⚠ 100', fill: '#EF4444', fontSize: 9 }} />
               {crewData.map((c, i) => (
                 <Line key={c.id} type="monotone" dataKey={c.id} stroke={CREW_COLORS[i]}
@@ -142,7 +156,7 @@ export default function TelemetryCharts({ crew }: Props) {
               <CartesianGrid strokeDasharray="3 3" stroke="#1F2D45" />
               <XAxis dataKey="t" tick={TICK_STYLE} tickLine={false} axisLine={false} />
               <YAxis tick={TICK_STYLE} tickLine={false} axisLine={false} domain={[0, 12]} width={28} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip unit=" h" />} />
               <ReferenceLine y={4.5} stroke="#F59E0B" strokeDasharray="4 2" label={{ value: '⚠ 4.5h', fill: '#F59E0B', fontSize: 9 }} />
               <ReferenceLine y={7.0} stroke="#EF4444" strokeDasharray="4 2" label={{ value: '✖ 7h', fill: '#EF4444', fontSize: 9 }} />
               {crewData.map((c, i) => (
@@ -163,7 +177,7 @@ export default function TelemetryCharts({ crew }: Props) {
               <CartesianGrid strokeDasharray="3 3" stroke="#1F2D45" />
               <XAxis dataKey="t" tick={TICK_STYLE} tickLine={false} axisLine={false} />
               <YAxis tick={TICK_STYLE} tickLine={false} axisLine={false} width={28} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip unit=" mGy" />} />
               <ReferenceLine y={5} stroke="#F59E0B" strokeDasharray="4 2" label={{ value: '⚠ 5', fill: '#F59E0B', fontSize: 9 }} />
               <ReferenceLine y={50} stroke="#EF4444" strokeDasharray="4 2" label={{ value: 'SPE 50', fill: '#EF4444', fontSize: 9 }} />
               {crewData.map((c, i) => (
@@ -184,7 +198,7 @@ export default function TelemetryCharts({ crew }: Props) {
               <CartesianGrid strokeDasharray="3 3" stroke="#1F2D45" />
               <XAxis dataKey="t" tick={TICK_STYLE} tickLine={false} axisLine={false} />
               <YAxis tick={TICK_STYLE} tickLine={false} axisLine={false} domain={[0, 8000]} width={36} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip unit=" ppm" />} />
               <ReferenceLine y={3000} stroke="#10B981" strokeDasharray="4 2" label={{ value: '✓ 3000', fill: '#10B981', fontSize: 9 }} />
               <ReferenceLine y={4500} stroke="#F59E0B" strokeDasharray="4 2" label={{ value: '⚠ 4500', fill: '#F59E0B', fontSize: 9 }} />
               {crewData.map((c, i) => (

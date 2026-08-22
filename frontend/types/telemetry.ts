@@ -119,6 +119,17 @@ export interface Countermeasure {
   citations: string[]
 }
 
+export interface ChatTurn {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface AgentChatRequest {
+  user_message: string
+  active_scenario?: string
+  history?: ChatTurn[]
+}
+
 export interface CrewProfile {
   id: string
   name: string

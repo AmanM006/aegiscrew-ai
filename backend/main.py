@@ -142,7 +142,7 @@ def _build_crew_state(scenario: str = "nominal") -> CrewStateResponse:
             latest_frame=frame,
             risk=risk,
             active_countermeasures=countermeasures,
-            history_24h=history[:12],
+            history_24h=history[:48],   # 48 × 30-min samples = full 24-hr window
             prediction=prediction,
         ))
 
@@ -282,10 +282,12 @@ def get_prescription(req: AgentPrescribeRequest):
 @app.post("/api/agent/chat", response_model=AgentChatResponse, tags=["agent"])
 def agent_chat(req: AgentChatRequest):
     """
-    Interactive Q&A with the AegisCrew AI IBM Granite flight surgeon.
+    Interactive Q&A with the AegisCrew AI IBM Granite 4 flight surgeon.
+    Accepts optional `history` list for multi-turn conversation context.
     """
     crew_state = _build_crew_state(get_active_scenario())
-    return chat_flight_surgeon(req.user_message, crew_state, req.active_scenario)
+    history = [{"role": t.role, "content": t.content} for t in req.history] if req.history else None
+    return chat_flight_surgeon(req.user_message, crew_state, req.active_scenario, history)
 
 
 @app.get("/api/debug/correlation", tags=["debug"])

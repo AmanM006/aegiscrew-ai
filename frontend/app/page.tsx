@@ -19,6 +19,10 @@ export default function MissionControlPage() {
   const [activeScenario, setActiveScenario] = useState<string>('nominal')
   const [commsMode, setCommsMode] = useState<'ISS' | 'Lunar Gateway' | 'Mars Transit'>('Mars Transit')
 
+  // Map comms preset label → seconds so DecisionTimer and the latency banner stay in sync.
+  const COMMS_DELAY_MAP: Record<string, number> = { 'ISS': 0, 'Lunar Gateway': 1.3, 'Mars Transit': 1200 }
+  const commsDelaySeconds = COMMS_DELAY_MAP[commsMode] ?? 1200
+
   const fetchCrewStatus = async () => {
     try {
       const res = await fetch(`${API}/api/crew/status`)
@@ -108,6 +112,7 @@ export default function MissionControlPage() {
               crewState={crewState}
               activeScenario={activeScenario}
               apiBase={API}
+              commsDelaySeconds={commsDelaySeconds}
             />
           </>
         )}

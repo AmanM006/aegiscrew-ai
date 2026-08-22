@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type {
   CrewStateResponse, AgentBriefingResponse, AgentChatResponse,
-  Countermeasure, AstronautStateResponse,
+  Countermeasure, AstronautStateResponse, ChatTurn,
 } from '@/types/telemetry'
 import {
   BrainCircuit, RefreshCw, Send, CheckCircle2,
@@ -15,6 +15,7 @@ interface Props {
   crewState: CrewStateResponse
   activeScenario: string
   apiBase: string
+  commsDelaySeconds?: number   // from CommsDelayBanner switcher; default = backend value
 }
 
 const URGENCY_COLOR: Record<string, string> = {
@@ -239,10 +240,11 @@ function ExplainabilityChain({ astro }: { astro: AstronautStateResponse }) {
   )
 }
 
-interface ChatMessage { role: 'user' | 'assistant'; content: string }
+// Re-use the shared ChatTurn type (same shape as backend ChatTurn / telemetry.ts)
+type ChatMessage = ChatTurn
 
 // ─── Main component ───────────────────────────────────────────────────────────
-export default function FlightSurgeonAI({ crewState, activeScenario, apiBase }: Props) {
+export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, commsDelaySeconds }: Props) {
   const [briefing, setBriefing]     = useState<AgentBriefingResponse | null>(null)
   const [briefingLoading, setBL]    = useState(false)
   const [briefingTs, setBriefingTs] = useState<number>(Date.now())
@@ -290,13 +292,23 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase }: 
     if (!chatInput.trim() || chatLoading) return
     const msg = chatInput.trim()
     setChatInput('')
+    // Snapshot history before state update so we send the turns that existed
+    // when the user hit send (skip the initial system greeting).
+    const historySnapshot = chatMessages
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .slice(1)   // drop the initial greeting — it's not real conversation context
+      .slice(-4)  // keep at most last 4 turns (2 Q+A pairs) to fit token budget
     setChatMessages((prev) => [...prev, { role: 'user', content: msg }])
     setCL(true)
     try {
       const res = await fetch(`${apiBase}/api/agent/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_message: msg, active_scenario: activeScenario }),
+        body: JSON.stringify({
+          user_message: msg,
+          active_scenario: activeScenario,
+          history: historySnapshot,
+        }),
       })
       const data: AgentChatResponse = await res.json()
       setChatMessages((prev) => [...prev, { role: 'assistant', content: data.reply }])
@@ -341,7 +353,7 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase }: 
       {/* Decision timer — core value prop: AI vs 22-min Earth delay */}
       <DecisionTimer
         decisionTimestampMs={briefingTs}
-        commsDelaySeconds={crewState.comms_delay_seconds}
+        commsDelaySeconds={commsDelaySeconds ?? crewState.comms_delay_seconds}
       />
 
       <div className="bg-[#0C1222] border border-[#1A2438] rounded-lg p-4 space-y-4">

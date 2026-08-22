@@ -207,9 +207,14 @@ class AgentPrescribeResponse(BaseModel):
     mock_mode: bool = False
 
 
+class ChatTurn(BaseModel):
+    role: str   # "user" | "assistant"
+    content: str
+
 class AgentChatRequest(BaseModel):
     user_message: str
     active_scenario: str = "nominal"
+    history: List['ChatTurn'] = []   # last N turns for multi-turn context
 
 
 class AgentChatResponse(BaseModel):

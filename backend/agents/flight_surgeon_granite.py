@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from backend.core.config import (
     GRANITE_MODEL_ID,
@@ -348,10 +348,12 @@ def chat_flight_surgeon(
     user_message: str,
     current_crew_state: CrewStateResponse | None = None,
     active_scenario: str = "nominal",
+    history: List[Dict[str, str]] | None = None,
 ) -> AgentChatResponse:
     """
     Interactive Q&A with the AegisCrew AI flight surgeon.
     Provides data-grounded explanations of risk rationales.
+    Accepts `history` (list of {role, content} dicts) for multi-turn context.
     """
     context_lines = []
     all_anomalies: List[RiskFactor] = []
@@ -365,22 +367,50 @@ def chat_flight_surgeon(
 
     rag_ctx = build_rag_context(all_anomalies, "\n".join(context_lines))
 
-    prompt = f"""You are the AegisCrew AI autonomous Flight Surgeon.
-A crew member or ground operator asks: "{user_message}"
+    model = _get_watsonx_model()
 
-Current Scenario: {active_scenario}
-{rag_ctx}
+    if model is not None:
+        # ── Live Granite multi-turn chat ──────────────────────────────────────
+        # Prepend system + RAG context, then replay up to 4 prior turns,
+        # then append the current user message.
+        _MAX_HISTORY = 4   # keep last N turns (user+assistant pairs) to stay within token budget
+        system_content = (
+            f"{_SYSTEM_PROMPT}\n\n"
+            f"Current Scenario: {active_scenario}\n"
+            f"{rag_ctx}"
+        )
+        messages: List[Dict[str, str]] = [{"role": "system", "content": system_content}]
 
-Answer with clinical precision, citing exact values and NASA protocol references.
-Keep response under 300 words."""
+        # Replay prior turns (capped)
+        if history:
+            for turn in history[-_MAX_HISTORY:]:
+                messages.append({"role": turn["role"], "content": turn["content"]})
 
-    response_text, is_mock = _call_granite(prompt)
-    if is_mock or response_text is None:
-        response_text = _mock_chat(user_message, active_scenario)
-        is_mock = True
+        messages.append({"role": "user", "content": user_message})
+
+        try:
+            result = model.chat(messages=messages, params={"max_tokens": 400, "temperature": 0.2})
+            response_text = result["choices"][0]["message"]["content"]
+            return AgentChatResponse(
+                reply=response_text,
+                model_used=GRANITE_MODEL_ID,
+                mock_mode=False,
+            )
+        except Exception as exc:
+            logger.error("Granite chat error: %s", exc)
+
+    # ── Mock fallback ──────────────────────────────────────────────────────────
+    # Include a brief prior-turn summary so mock replies feel contextual.
+    history_note = ""
+    if history:
+        last_q = next((t["content"] for t in reversed(history) if t["role"] == "user"), None)
+        if last_q:
+            history_note = f'\n[Prior context: user asked "{last_q[:80]}..."]'
+
+    response_text = _mock_chat(user_message, active_scenario) + history_note
 
     return AgentChatResponse(
         reply=response_text,
         model_used=GRANITE_MODEL_ID,
-        mock_mode=is_mock,
+        mock_mode=True,
     )
