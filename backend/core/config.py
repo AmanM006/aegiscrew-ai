@@ -2,11 +2,28 @@
 AegisCrew AI — Central Configuration
 Reads from environment variables; falls back to sensible defaults so the
 application starts even without a .env file (mock / demo mode).
+A .env file at <backend>/.env (or project root/.env) is auto-loaded when
+python-dotenv is installed — no manual sourcing required.
 """
 from __future__ import annotations
 
 import os
 from pathlib import Path
+
+# Auto-load .env if python-dotenv is available
+# Searches: backend/.env → project root/.env
+def _load_dotenv() -> None:
+    try:
+        from dotenv import load_dotenv
+        _here = Path(__file__).resolve().parent.parent  # backend/
+        for candidate in (_here / ".env", _here.parent / ".env"):
+            if candidate.exists():
+                load_dotenv(candidate, override=False)
+                break
+    except ImportError:
+        pass  # python-dotenv not installed — rely on OS env vars
+
+_load_dotenv()
 
 # ---------------------------------------------------------------------------
 # Base paths

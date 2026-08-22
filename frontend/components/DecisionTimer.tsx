@@ -72,7 +72,12 @@ export default function DecisionTimer({ decisionTimestampMs, commsDelaySeconds }
         <div className="hidden sm:flex items-center gap-2">
           <span className="text-slate-400">Earth Reply In:</span>
           <span className="font-bold tabular-nums" style={{ color: earthReplyIn > 0 ? '#EF4444' : '#10B981' }}>
-            {isMars ? formatCountdown(earthReplyIn) : '~instant'}
+            {isMars
+              ? formatCountdown(earthReplyIn)
+              : commsDelaySeconds === 0
+                ? <span className="text-emerald-400">Real-time (0s)</span>
+                : `${commsDelaySeconds.toFixed(1)}s`
+            }
           </span>
         </div>
 

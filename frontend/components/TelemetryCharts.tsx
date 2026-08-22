@@ -23,13 +23,23 @@ function buildTimeSeries(
   }))
 }
 
-// Merge multi-crew arrays by index position
+// Build human-readable time label: index 0 = "-24h", last index = "Now"
+function makeTimeLabel(i: number, total: number): string {
+  const hoursAgo = Math.round(((total - 1 - i) / (total - 1)) * 24)
+  if (hoursAgo === 0) return 'Now'
+  return `-${hoursAgo}h`
+}
+
+// Merge multi-crew arrays by index position, injecting a timeLabel for X-axis
 function mergeCrewSeries(
   crewData: { id: string; frames: TelemetryFrame[] }[],
   extractor: (f: TelemetryFrame) => number,
 ) {
   const maxLen = Math.max(...crewData.map(c => c.frames.length), 1)
-  const merged: Record<string, unknown>[] = Array.from({ length: maxLen }, (_, i) => ({ t: i }))
+  const merged: Record<string, unknown>[] = Array.from({ length: maxLen }, (_, i) => ({
+    t: i,
+    timeLabel: makeTimeLabel(i, maxLen),
+  }))
   for (const { id, frames } of crewData) {
     frames.forEach((f, i) => {
       if (merged[i]) merged[i][id] = parseFloat(extractor(f).toFixed(2))
@@ -70,16 +80,19 @@ export default function TelemetryCharts({ crew }: Props) {
 
   // Per-chart unit suffix — passed as a prop to CustomTooltip
   function CustomTooltip({
-    active, payload, unit,
+    active, payload, label, unit,
   }: {
     active?: boolean
     payload?: { name: string; value: number; color: string }[]
-    label?: number
+    label?: string
     unit?: string
   }) {
     if (!active || !payload?.length) return null
     return (
       <div className="bg-[#1A2236] border border-[#1F2D45] rounded-lg p-2 text-[10px] font-mono space-y-0.5 shadow-lg">
+        {label && (
+          <div className="text-[9px] text-slate-500 border-b border-[#1F2D45] pb-1 mb-1">{label}</div>
+        )}
         {payload.map(p => {
           const name = crewData.find(c => c.id === p.name)?.name ?? p.name
           const val  = typeof p.value === 'number' ? p.value.toFixed(1) : p.value
@@ -114,7 +127,7 @@ export default function TelemetryCharts({ crew }: Props) {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={hrvData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1F2D45" />
-              <XAxis dataKey="t" tick={TICK_STYLE} tickLine={false} axisLine={false} />
+              <XAxis dataKey="timeLabel" tick={TICK_STYLE} tickLine={false} axisLine={false} interval={11} />
               <YAxis tick={TICK_STYLE} tickLine={false} axisLine={false} domain={[0, 90]} width={28} />
               <Tooltip content={<CustomTooltip unit=" ms" />} />
               <ReferenceLine y={30} stroke="#EF4444" strokeDasharray="4 2" label={{ value: '⚠ 30ms', fill: '#EF4444', fontSize: 9 }} />
@@ -134,7 +147,7 @@ export default function TelemetryCharts({ crew }: Props) {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={hrData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1F2D45" />
-              <XAxis dataKey="t" tick={TICK_STYLE} tickLine={false} axisLine={false} />
+              <XAxis dataKey="timeLabel" tick={TICK_STYLE} tickLine={false} axisLine={false} interval={11} />
               <YAxis tick={TICK_STYLE} tickLine={false} axisLine={false} domain={[40, 140]} width={28} />
               <Tooltip content={<CustomTooltip unit=" bpm" />} />
               <ReferenceLine y={100} stroke="#EF4444" strokeDasharray="4 2" label={{ value: '⚠ 100', fill: '#EF4444', fontSize: 9 }} />
@@ -154,7 +167,7 @@ export default function TelemetryCharts({ crew }: Props) {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={sleepData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1F2D45" />
-              <XAxis dataKey="t" tick={TICK_STYLE} tickLine={false} axisLine={false} />
+              <XAxis dataKey="timeLabel" tick={TICK_STYLE} tickLine={false} axisLine={false} interval={11} />
               <YAxis tick={TICK_STYLE} tickLine={false} axisLine={false} domain={[0, 12]} width={28} />
               <Tooltip content={<CustomTooltip unit=" h" />} />
               <ReferenceLine y={4.5} stroke="#F59E0B" strokeDasharray="4 2" label={{ value: '⚠ 4.5h', fill: '#F59E0B', fontSize: 9 }} />
@@ -175,7 +188,7 @@ export default function TelemetryCharts({ crew }: Props) {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={radData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1F2D45" />
-              <XAxis dataKey="t" tick={TICK_STYLE} tickLine={false} axisLine={false} />
+              <XAxis dataKey="timeLabel" tick={TICK_STYLE} tickLine={false} axisLine={false} interval={11} />
               <YAxis tick={TICK_STYLE} tickLine={false} axisLine={false} width={28} />
               <Tooltip content={<CustomTooltip unit=" mGy" />} />
               <ReferenceLine y={5} stroke="#F59E0B" strokeDasharray="4 2" label={{ value: '⚠ 5', fill: '#F59E0B', fontSize: 9 }} />
@@ -196,7 +209,7 @@ export default function TelemetryCharts({ crew }: Props) {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={co2Data}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1F2D45" />
-              <XAxis dataKey="t" tick={TICK_STYLE} tickLine={false} axisLine={false} />
+              <XAxis dataKey="timeLabel" tick={TICK_STYLE} tickLine={false} axisLine={false} interval={11} />
               <YAxis tick={TICK_STYLE} tickLine={false} axisLine={false} domain={[0, 8000]} width={36} />
               <Tooltip content={<CustomTooltip unit=" ppm" />} />
               <ReferenceLine y={3000} stroke="#10B981" strokeDasharray="4 2" label={{ value: '✓ 3000', fill: '#10B981', fontSize: 9 }} />

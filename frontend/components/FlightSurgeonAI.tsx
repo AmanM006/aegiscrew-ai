@@ -132,28 +132,39 @@ interface StageProps {
   label: string
   sub: string
   items: string[]
+  nominalFallback: string   // shown instead of dimmed "nominal" when items is empty
   active: boolean
   last?: boolean
 }
 
-function PipelineStage({ color, label, sub, items, active, last }: StageProps) {
+function PipelineStage({ color, label, sub, items, nominalFallback, active, last }: StageProps) {
   return (
     <div className="flex items-stretch gap-0 flex-1 min-w-0">
-      <div className={`flex-1 min-w-0 rounded-lg border p-2.5 transition-colors ${active ? '' : 'opacity-40'}`}
-        style={{ borderColor: color + '40', background: color + '08' }}>
+      <div
+        className="flex-1 min-w-0 rounded-lg border p-2.5 transition-colors"
+        style={{ borderColor: active ? color + '40' : '#1A2438', background: active ? color + '08' : '#0A0F1A' }}
+      >
         {/* Stage header */}
         <div className="flex items-center gap-1.5 mb-1.5">
-          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
-          <span className="text-[9px] font-mono font-bold uppercase tracking-wide" style={{ color }}>{label}</span>
+          <div
+            className="w-2 h-2 rounded-full flex-shrink-0"
+            style={{ background: active ? color : '#334155' }}
+          />
+          <span
+            className="text-[9px] font-mono font-bold uppercase tracking-wide"
+            style={{ color: active ? color : '#475569' }}
+          >
+            {label}
+          </span>
         </div>
         <div className="text-[9px] text-slate-500 font-mono mb-1.5 leading-tight">{sub}</div>
         {/* Items */}
         <div className="space-y-0.5">
           {items.slice(0, 3).map((item, i) => (
-            <div key={i} className="text-[8px] font-mono text-slate-400 truncate leading-snug">{item}</div>
+            <div key={i} className="text-[8px] font-mono text-slate-300 truncate leading-snug">{item}</div>
           ))}
           {items.length === 0 && (
-            <div className="text-[8px] font-mono text-slate-600 italic">nominal</div>
+            <div className="text-[8px] font-mono text-slate-500 leading-snug">{nominalFallback}</div>
           )}
         </div>
       </div>
@@ -169,16 +180,19 @@ function PipelineStage({ color, label, sub, items, active, last }: StageProps) {
   )
 }
 
-function ExplainabilityChain({ astro }: { astro: AstronautStateResponse }) {
+function ExplainabilityChain({
+  astro,
+}: {
+  astro: AstronautStateResponse
+}) {
   const mlFeats   = astro.risk.ml_result?.contributing_features ?? []
   const anomalies = astro.risk.anomalies
   const cms       = astro.active_countermeasures
   const isAnomaly = astro.risk.ml_result?.is_anomaly ?? false
   const mlScore   = astro.risk.ml_anomaly_score
+  const readiness = astro.risk.mission_readiness_score
 
-  if (anomalies.length === 0 && mlFeats.length === 0) return null
-
-  // Stage content
+  // Stage content — always populate even for nominal crew
   const mlItems = mlFeats.length > 0
     ? [`Score: ${mlScore.toFixed(0)}  ${isAnomaly ? '⚠ ANOMALY' : '✓ normal'}`, ...mlFeats.slice(0, 2)]
     : []
@@ -195,12 +209,27 @@ function ExplainabilityChain({ astro }: { astro: AstronautStateResponse }) {
 
   const graniteItems = cms.map(cm => `[${cm.protocol_id}] ${cm.title}`)
 
+  // Nominal fallback strings derived from actual telemetry
+  const mlNominal   = `Score: ${mlScore.toFixed(0)} (Nominal) · Conformity ${Math.min(99, Math.round(100 - mlScore * 0.3))}%`
+  const ruleNominal = `Readiness: ${readiness.toFixed(0)}/100 · All ${anomalies.length === 0 ? 'thresholds clear' : 'rules passed'}`
+  const ragNominal  = 'No active protocols — baselines within NASA-STD-3001 limits'
+  const graniteNominal = 'No countermeasures required — crew state nominal'
+
   return (
     <div className="rounded-lg border border-[#1A2438] bg-[#060B14] p-3 space-y-2">
-      {/* Title */}
+      {/* Title + status */}
       <div className="flex items-center gap-1.5 text-[9px] font-mono text-slate-400 uppercase tracking-wider">
         <Link2 className="w-3 h-3 text-sky-400" />
-        <span>AI Decision Pipeline — {astro.profile.name}</span>
+        <span>{astro.profile.name}</span>
+        <span
+          className="ml-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase"
+          style={{
+            background: astro.risk.status === 'RED' ? '#EF444420' : astro.risk.status === 'AMBER' ? '#F59E0B20' : '#10B98120',
+            color: astro.risk.status === 'RED' ? '#EF4444' : astro.risk.status === 'AMBER' ? '#F59E0B' : '#10B981',
+          }}
+        >
+          {astro.risk.status} · {readiness.toFixed(0)}/100
+        </span>
         <span className="ml-auto text-[8px] text-slate-600">ibm/granite-4-h-small</span>
       </div>
 
@@ -211,31 +240,75 @@ function ExplainabilityChain({ astro }: { astro: AstronautStateResponse }) {
           label="ML Engine"
           sub="IsolationForest"
           items={mlItems}
+          nominalFallback={mlNominal}
           active={mlFeats.length > 0}
         />
         <PipelineStage
           color="#F59E0B"
           label="Rule Engine"
-          sub="NASA-STD-3001 thresholds"
+          sub="NASA-STD-3001"
           items={ruleItems}
+          nominalFallback={ruleNominal}
           active={anomalies.length > 0}
         />
         <PipelineStage
           color="#00F0FF"
           label="Clinical RAG"
-          sub="SP-2010-3407 protocols"
+          sub="SP-2010-3407"
           items={ragItems}
+          nominalFallback={ragNominal}
           active={ragItems.length > 0}
         />
         <PipelineStage
           color="#10B981"
           label="Granite 4"
-          sub="Countermeasure synthesis"
+          sub="Synthesis"
           items={graniteItems}
+          nominalFallback={graniteNominal}
           active={cms.length > 0}
           last
         />
       </div>
+    </div>
+  )
+}
+
+// ─── Crew-selector wrapper for the chain tab ─────────────────────────────────
+function ExplainabilityChainTab({ crewState }: { crewState: CrewStateResponse }) {
+  const [selectedId, setSelectedId] = useState<string>(crewState.crew[0]?.profile.id ?? '')
+  const astro = crewState.crew.find(a => a.profile.id === selectedId) ?? crewState.crew[0]
+
+  return (
+    <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1">
+      {/* Crew pill selector */}
+      <div className="flex flex-wrap gap-1.5">
+        <span className="text-[9px] font-mono text-slate-500 self-center mr-1">View pipeline for:</span>
+        {crewState.crew.map((a) => {
+          const isActive = a.profile.id === selectedId
+          const statusColor = a.risk.status === 'RED' ? '#EF4444' : a.risk.status === 'AMBER' ? '#F59E0B' : '#10B981'
+          return (
+            <button
+              key={a.profile.id}
+              onClick={() => setSelectedId(a.profile.id)}
+              className={`px-2.5 py-1 rounded border text-[10px] font-mono font-medium transition-all ${
+                isActive
+                  ? 'bg-slate-800 border-slate-600 text-white'
+                  : 'bg-[#080D1A] border-[#162033] text-slate-400 hover:text-slate-200 hover:border-slate-600'
+              }`}
+            >
+              <span className="mr-1.5" style={{ color: isActive ? statusColor : undefined }}>●</span>
+              {a.profile.id}
+              <span className="ml-1 text-[9px] hidden sm:inline text-slate-500">
+                {a.profile.name.split(' ').pop()}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+      <p className="text-[10px] text-slate-500 font-mono">
+        Decision pipeline: ML Engine → Rule Engine → Clinical RAG → Granite 4 synthesis
+      </p>
+      {astro && <ExplainabilityChain astro={astro} />}
     </div>
   )
 }
@@ -333,16 +406,22 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, co
         <div className="flex items-center gap-2">
           {briefing !== null && (
             briefing.mock_mode ? (
-              <span className="text-[9px] px-2 py-0.5 rounded border font-mono font-bold flex items-center gap-1"
-                style={{ background: 'rgba(245,158,11,.12)', borderColor: 'rgba(245,158,11,.35)', color: '#F59E0B' }}>
+              <span
+                className="text-[9px] px-2 py-0.5 rounded border font-mono font-bold flex items-center gap-1 cursor-help"
+                style={{ background: 'rgba(245,158,11,.12)', borderColor: 'rgba(245,158,11,.35)', color: '#F59E0B' }}
+                title="Running in offline demo mode. Set WATSONX_API_KEY + WATSONX_PROJECT_ID in backend/.env to enable live IBM Granite 4 inference."
+              >
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
-                MOCK MODE
+                MOCK MODE (OFFLINE DEMO)
               </span>
             ) : (
-              <span className="text-[9px] px-2 py-0.5 rounded border font-mono font-bold flex items-center gap-1"
-                style={{ background: 'rgba(16,185,129,.12)', borderColor: 'rgba(16,185,129,.35)', color: '#10B981' }}>
+              <span
+                className="text-[9px] px-2 py-0.5 rounded border font-mono font-bold flex items-center gap-1"
+                style={{ background: 'rgba(16,185,129,.12)', borderColor: 'rgba(16,185,129,.35)', color: '#10B981' }}
+                title="Live IBM watsonx.ai inference active via ibm/granite-4-h-small"
+              >
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-                LIVE · granite-4-h-small
+                LIVE · ibm/granite-4-h-small
               </span>
             )
           )}
@@ -419,14 +498,7 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, co
 
         {/* TAB: AI Explainability Chain */}
         {tab === 'chain' && (
-          <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
-            <p className="text-[10px] text-slate-500 font-mono">
-              Tracing the decision pipeline: ML z-scores → threshold rules → Granite 4 prescription, per crew member.
-            </p>
-            {crewState.crew.map((astro) => (
-              <ExplainabilityChain key={astro.profile.id} astro={astro} />
-            ))}
-          </div>
+          <ExplainabilityChainTab crewState={crewState} />
         )}
 
         {/* TAB: Chat */}
