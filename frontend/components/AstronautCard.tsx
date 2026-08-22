@@ -80,10 +80,12 @@ export default function AstronautCard({ astro, prescribing, prescriptionText, on
     { label: 'PVT',   value: `${f.circadian.pvt_reaction_time_ms.toFixed(0)} ms`, warn: f.circadian.pvt_reaction_time_ms > 320 },
   ]
 
-  // ML anomaly data
-  const mlResult = risk.ml_result
-  const hasMLData = mlResult && mlResult.training_samples > 0
-  const isMLAnomaly = mlResult?.is_anomaly ?? false
+  // ML anomaly data — show badge regardless of training_samples
+  const mlResult    = risk.ml_result
+  const hasMLData   = true                              // always show ML badge
+  const isMLAnomaly = mlResult?.is_anomaly ?? (risk.ml_anomaly_score > 40)
+  const mlConf      = risk.confidence || (mlResult?.confidence_str ?? 'threshold-only')
+  const mlFeats     = mlResult?.contributing_features ?? []
 
   return (
     <>
@@ -144,37 +146,35 @@ export default function AstronautCard({ astro, prescribing, prescriptionText, on
             </div>
           </div>
 
-          {/* ML Confidence Badge */}
-          {hasMLData && (
-            <div
-              className="flex items-center gap-1.5 px-2 py-1 rounded border mb-2"
-              style={{
-                background:   isMLAnomaly ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)',
-                borderColor:  isMLAnomaly ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)',
-              }}
-            >
-              <BrainCircuit
-                className="w-3 h-3 flex-shrink-0"
+          {/* ML Confidence Badge — always visible */}
+          <div
+            className="flex items-center gap-1.5 px-2 py-1 rounded border mb-2"
+            style={{
+              background:  isMLAnomaly ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)',
+              borderColor: isMLAnomaly ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)',
+            }}
+          >
+            <BrainCircuit
+              className="w-3 h-3 flex-shrink-0"
+              style={{ color: isMLAnomaly ? '#EF4444' : '#10B981' }}
+            />
+            <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
+              <span
+                className="text-[9px] font-mono font-semibold"
                 style={{ color: isMLAnomaly ? '#EF4444' : '#10B981' }}
-              />
-              <div className="flex-1 min-w-0">
-                <span
-                  className="text-[9px] font-mono font-semibold"
-                  style={{ color: isMLAnomaly ? '#EF4444' : '#10B981' }}
-                >
-                  {isMLAnomaly ? '⚠ ML ANOMALY' : '✓ ML NOMINAL'}
-                </span>
-                <span className="text-[9px] text-slate-500 font-mono ml-1.5">
-                  {risk.confidence}
-                </span>
-              </div>
+              >
+                {isMLAnomaly ? '⚠ ML ANOMALY' : '✓ ML NOMINAL'}
+              </span>
+              <span className="text-[9px] text-slate-500 font-mono">
+                {mlConf}
+              </span>
             </div>
-          )}
+          </div>
 
           {/* Contributing features from ML */}
-          {hasMLData && mlResult!.contributing_features.length > 0 && (
+          {mlFeats.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-2">
-              {mlResult!.contributing_features.slice(0, 3).map((feat, i) => (
+              {mlFeats.slice(0, 3).map((feat, i) => (
                 <span
                   key={i}
                   className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/50"
@@ -217,6 +217,33 @@ export default function AstronautCard({ astro, prescribing, prescriptionText, on
                   <span className="truncate">{a.description}</span>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Prediction Row */}
+          {astro.prediction && astro.prediction.predicted_status_in_6h !== 'STABLE' && (
+            <div
+              className="text-[9px] font-mono px-2 py-1 rounded border flex items-center gap-1.5 mt-1"
+              style={{
+                background:  astro.prediction.predicted_status_in_6h === 'RED'   ? 'rgba(239,68,68,0.08)'
+                           : astro.prediction.predicted_status_in_6h === 'AMBER' ? 'rgba(245,158,11,0.08)'
+                           : 'rgba(16,185,129,0.08)',
+                borderColor: astro.prediction.predicted_status_in_6h === 'RED'   ? 'rgba(239,68,68,0.25)'
+                           : astro.prediction.predicted_status_in_6h === 'AMBER' ? 'rgba(245,158,11,0.25)'
+                           : 'rgba(16,185,129,0.25)',
+                color:       astro.prediction.predicted_status_in_6h === 'RED'   ? '#EF4444'
+                           : astro.prediction.predicted_status_in_6h === 'AMBER' ? '#F59E0B'
+                           : '#10B981',
+              }}
+            >
+              <span className="text-[8px] font-bold uppercase">▶ +6h:</span>
+              <span>
+                {astro.prediction.hours_to_red != null
+                  ? `RED in ${astro.prediction.hours_to_red.toFixed(1)}h`
+                  : astro.prediction.hours_to_amber != null
+                  ? `AMBER in ${astro.prediction.hours_to_amber.toFixed(1)}h`
+                  : astro.prediction.prediction_basis}
+              </span>
             </div>
           )}
         </div>

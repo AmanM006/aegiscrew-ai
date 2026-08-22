@@ -90,10 +90,16 @@ def detect_crew_wide_pattern(
     if len(crew_flags) < max(2, int(len(all_crew_frames) * MIN_AFFECTED_FRACTION)):
         return None   # fewer than threshold affected
 
-    # Find features shared across all flagged crew
-    flagged_ids   = list(crew_flags.keys())
-    feature_sets  = [set(crew_flags[cid].keys()) for cid in flagged_ids]
-    shared_feats  = feature_sets[0].intersection(*feature_sets[1:])
+    # Find features shared across 2+ flagged crew (not necessarily ALL)
+    # Use pairwise union approach: a feature counts as "shared" if 2+ crew flag it
+    flagged_ids  = list(crew_flags.keys())
+    feature_counts: dict[str, int] = {}
+    for cid in flagged_ids:
+        for feat in crew_flags[cid]:
+            feature_counts[feat] = feature_counts.get(feat, 0) + 1
+
+    # shared = flagged by at least 2 crew members
+    shared_feats = {f for f, cnt in feature_counts.items() if cnt >= 2}
 
     if not shared_feats:
         return None   # no common features — individual issues, not systemic

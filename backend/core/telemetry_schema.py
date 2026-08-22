@@ -69,6 +69,17 @@ class TelemetryFrame(BaseModel):
 # Risk assessment models
 # ---------------------------------------------------------------------------
 
+class PredictionResult(BaseModel):
+    crew_id: str
+    current_readiness: float
+    trend_per_hour: float
+    hours_to_red: Optional[float] = None
+    hours_to_amber: Optional[float] = None
+    predicted_status_in_6h: str = "STABLE"
+    prediction_basis: str = ""
+    confidence: str = ""
+
+
 class RiskFactor(BaseModel):
     category: str
     severity: Literal["LOW", "MODERATE", "HIGH", "CRITICAL"]
@@ -152,6 +163,7 @@ class AstronautStateResponse(BaseModel):
     risk: RiskAssessment
     active_countermeasures: List[Countermeasure] = []
     history_24h: List[TelemetryFrame] = []
+    prediction: Optional[PredictionResult] = None
 
 
 class CrewStateResponse(BaseModel):

@@ -1,4 +1,4 @@
-// AegisCrew AI — Full TypeScript type definitions (v2 — ML + Correlation)
+// AegisCrew AI — Full TypeScript type definitions (v3 — ML + Correlation + Prediction)
 
 export type TrafficLight = 'GREEN' | 'AMBER' | 'RED'
 export type SPEAlertStatus = 'NOMINAL' | 'WATCH' | 'WARNING' | 'EMERGENCY'
@@ -65,22 +65,34 @@ export interface RiskFactor {
 // IsolationForest ML anomaly result
 export interface AnomalyResult {
   crew_id: string
-  anomaly_score: number              // 0–100
+  anomaly_score: number
   is_anomaly: boolean
-  contributing_features: string[]   // e.g. ["Cabin CO₂ (z=3.2σ)", "Elevated HR (z=2.1σ)"]
-  confidence_str: string            // e.g. "87% confidence · 360 samples"
+  contributing_features: string[]
+  confidence_str: string
   training_samples: number
 }
 
 // Cross-crew systemic pattern detection
 export interface CrewPatternAlert {
-  pattern_type: string              // "ENVIRONMENTAL" | "INDIVIDUAL" | "MIXED"
+  pattern_type: string
   affected_crew: string[]
   affected_names: string[]
   shared_features: string[]
   likely_root_cause: string
-  severity: string                  // "HIGH" | "CRITICAL"
+  severity: string
   recommendation: string
+}
+
+// Predictive trajectory
+export interface PredictionResult {
+  crew_id: string
+  current_readiness: number
+  trend_per_hour: number            // negative = degrading
+  hours_to_red: number | null
+  hours_to_amber: number | null
+  predicted_status_in_6h: string   // "GREEN" | "AMBER" | "RED" | "STABLE"
+  prediction_basis: string
+  confidence: string
 }
 
 export interface RiskAssessment {
@@ -89,7 +101,7 @@ export interface RiskAssessment {
   fatigue_risk_score: number
   cardiovascular_risk_score: number
   radiation_risk_score: number
-  ml_anomaly_score: number          // IsolationForest ML contribution
+  ml_anomaly_score: number
   mission_readiness_score: number
   status: TrafficLight
   anomalies: RiskFactor[]
@@ -126,6 +138,7 @@ export interface AstronautStateResponse {
   risk: RiskAssessment
   active_countermeasures: Countermeasure[]
   history_24h: TelemetryFrame[]
+  prediction: PredictionResult | null
 }
 
 export interface CrewStateResponse {
@@ -137,7 +150,7 @@ export interface CrewStateResponse {
   fleet_readiness: number
   fleet_status: TrafficLight
   active_scenario: string
-  crew_wide_alert: CrewPatternAlert | null   // cross-crew correlation result
+  crew_wide_alert: CrewPatternAlert | null
 }
 
 export interface AgentBriefingResponse {

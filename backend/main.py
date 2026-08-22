@@ -117,12 +117,33 @@ def _build_crew_state(scenario: str = "nominal") -> CrewStateResponse:
             except Exception:
                 pass
 
+        # Predictive trajectory
+        from backend.ml_engine.prediction_engine import predict_crew_trajectory
+        from backend.core.telemetry_schema import PredictionResult as _PR
+        prediction = None
+        try:
+            if len(history) >= 2:
+                pred = predict_crew_trajectory(history, risk.mission_readiness_score)
+                prediction = _PR(
+                    crew_id=pred.crew_id,
+                    current_readiness=pred.current_readiness,
+                    trend_per_hour=pred.trend_per_hour,
+                    hours_to_red=pred.hours_to_red,
+                    hours_to_amber=pred.hours_to_amber,
+                    predicted_status_in_6h=pred.predicted_status_in_6h,
+                    prediction_basis=pred.prediction_basis,
+                    confidence=pred.confidence,
+                )
+        except Exception as exc:
+            logger.debug("Prediction engine error (non-fatal): %s", exc)
+
         crew_out.append(AstronautStateResponse(
             profile=profile,
             latest_frame=frame,
             risk=risk,
             active_countermeasures=countermeasures,
-            history_24h=history[:12],   # cap at 12 frames for API response size
+            history_24h=history[:12],
+            prediction=prediction,
         ))
 
     # Fleet readiness = mean of all individual readiness scores
@@ -283,3 +304,36 @@ def agent_chat(req: AgentChatRequest):
     """
     crew_state = _build_crew_state(get_active_scenario())
     return chat_flight_surgeon(req.user_message, crew_state, req.active_scenario)
+
+
+@app.get("/api/debug/correlation", tags=["debug"])
+def debug_correlation():
+    """
+    Debug endpoint — returns raw correlation engine output for current scenario.
+    Use this to verify crew_wide_alert is populating when CO2/SPE scenarios are active.
+    """
+    from backend.data.telemetry_streamer import get_all_crew_ids, get_latest_frame
+    from backend.data.nasa_loader import get_crew_profiles
+    from backend.ml_engine.correlation_engine import detect_crew_wide_pattern, _flag_deviating_features
+
+    crew_ids = get_all_crew_ids()
+    profiles = {p["id"]: p["name"] for p in get_crew_profiles()}
+    frames   = [get_latest_frame(cid) for cid in crew_ids]
+
+    per_crew_flags = {
+        f.crew_id: {
+            "flags": _flag_deviating_features(f),
+            "cabin_co2_ppm": f.atmosphere.cabin_co2_ppm,
+            "daily_radiation_mgy": f.radiation.daily_radiation_mgy,
+            "hrv_rmssd_ms": f.vitals.hrv_rmssd_ms,
+            "sleep_debt_72h_hrs": f.circadian.sleep_debt_72h_hrs,
+        }
+        for f in frames
+    }
+
+    pattern = detect_crew_wide_pattern(frames, profiles)
+    return {
+        "active_scenario": get_active_scenario(),
+        "per_crew_flags": per_crew_flags,
+        "crew_wide_alert": pattern.__dict__ if pattern else None,
+    }

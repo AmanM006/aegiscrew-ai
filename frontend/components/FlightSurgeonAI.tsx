@@ -1,10 +1,15 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import type {
-  CrewStateResponse, AgentBriefingResponse, AgentChatResponse, Countermeasure,
+  CrewStateResponse, AgentBriefingResponse, AgentChatResponse,
+  Countermeasure, AstronautStateResponse,
 } from '@/types/telemetry'
-import { BrainCircuit, RefreshCw, Send, CheckCircle2, MessageSquare, FileText, AlertTriangle } from 'lucide-react'
+import {
+  BrainCircuit, RefreshCw, Send, CheckCircle2,
+  MessageSquare, FileText, AlertTriangle, Link2,
+} from 'lucide-react'
+import DecisionTimer from './DecisionTimer'
 
 interface Props {
   crewState: CrewStateResponse
@@ -19,50 +24,60 @@ const URGENCY_COLOR: Record<string, string> = {
   ROUTINE:   '#10B981',
 }
 
+// ─── Sound cue ────────────────────────────────────────────────────────────────
+function playAlertTone() {
+  try {
+    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(880, ctx.currentTime)
+    osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.3)
+    gain.gain.setValueAtTime(0.15, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6)
+    osc.start(ctx.currentTime)
+    osc.stop(ctx.currentTime + 0.6)
+  } catch {
+    // Web Audio not available — silent fallback
+  }
+}
+
+// ─── Countermeasure card ──────────────────────────────────────────────────────
 function CountermeasureCard({ cm }: { cm: Countermeasure }) {
   const [approved, setApproved] = useState(false)
   const color = URGENCY_COLOR[cm.urgency] || '#64748B'
   return (
     <div
       className="rounded-lg border p-3.5 flex flex-col gap-2 transition-colors bg-[#080D1A]"
-      style={{
-        borderColor: approved ? '#10B98150' : color + '30',
-      }}
+      style={{ borderColor: approved ? '#10B98150' : color + '30' }}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-1.5">
-          <span
-            className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded"
-            style={{ background: color + '15', color }}
-          >
-            {cm.urgency}
-          </span>
+          <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded"
+            style={{ background: color + '15', color }}>{cm.urgency}</span>
           <span className="text-[9px] text-slate-500 font-mono">[{cm.protocol_id}]</span>
         </div>
         <button
           onClick={() => setApproved((a) => !a)}
           className="text-[11px] font-mono font-medium px-2.5 py-0.5 rounded border transition-colors flex items-center gap-1"
-          style={
-            approved
-              ? { borderColor: '#10B981', background: '#10B98120', color: '#10B981' }
-              : { borderColor: '#1E293B', background: '#0C1222', color: '#94A3B8' }
-          }
+          style={approved
+            ? { borderColor: '#10B981', background: '#10B98120', color: '#10B981' }
+            : { borderColor: '#1E293B', background: '#0C1222', color: '#94A3B8' }}
         >
           {approved ? <CheckCircle2 className="w-3 h-3" /> : null}
           <span>{approved ? 'Approved' : 'Approve Protocol'}</span>
         </button>
       </div>
-
       <div className="text-xs font-semibold text-slate-100">{cm.title}</div>
       <div className="text-[11px] text-slate-400 font-sans leading-relaxed">{cm.clinical_action}</div>
-
       {cm.operational_impact && (
         <div className="text-[11px] text-amber-400 font-mono flex items-center gap-1">
           <AlertTriangle className="w-3 h-3 flex-shrink-0" />
           <span>{cm.operational_impact}</span>
         </div>
       )}
-
       {cm.citations.length > 0 && (
         <div className="text-[9px] text-slate-500 font-mono pt-1 border-t border-[#162033]">
           NASA: {cm.citations.join(' · ')}
@@ -72,40 +87,131 @@ function CountermeasureCard({ cm }: { cm: Countermeasure }) {
   )
 }
 
-interface ChatMessage {
-  role: 'user' | 'assistant'
-  content: string
+// ─── Explainability chain ─────────────────────────────────────────────────────
+function ExplainabilityChain({ astro }: { astro: AstronautStateResponse }) {
+  const mlFeats     = astro.risk.ml_result?.contributing_features ?? []
+  const anomalies   = astro.risk.anomalies
+  const cms         = astro.active_countermeasures
+  const isAnomaly   = astro.risk.ml_result?.is_anomaly ?? false
+  const mlScore     = astro.risk.ml_anomaly_score
+
+  if (anomalies.length === 0 && mlFeats.length === 0) return null
+
+  return (
+    <div className="rounded-lg border border-[#1A2438] bg-[#060B14] p-3 space-y-2">
+      <div className="flex items-center gap-1.5 text-[9px] font-mono text-slate-400 uppercase tracking-wider">
+        <Link2 className="w-3 h-3 text-sky-400" />
+        <span>AI Explainability Chain — {astro.profile.name}</span>
+      </div>
+
+      {/* Step 1: ML signal */}
+      {mlFeats.length > 0 && (
+        <div className="flex items-start gap-2">
+          <div className="flex flex-col items-center gap-0.5 flex-shrink-0 mt-0.5">
+            <div className={`w-2 h-2 rounded-full border-2 ${isAnomaly ? 'bg-red-500 border-red-400' : 'bg-emerald-500 border-emerald-400'}`} />
+            <div className="w-px h-4 bg-slate-700" />
+          </div>
+          <div>
+            <span className="text-[9px] font-mono font-bold text-slate-300">IsolationForest (ML score: {mlScore.toFixed(0)})</span>
+            <div className="flex flex-wrap gap-1 mt-0.5">
+              {mlFeats.map((f, i) => (
+                <span key={i} className="text-[8px] font-mono px-1 py-0.5 bg-slate-800 text-slate-400 rounded border border-slate-700/50">
+                  {f}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Step 2: threshold rules */}
+      {anomalies.length > 0 && (
+        <div className="flex items-start gap-2">
+          <div className="flex flex-col items-center gap-0.5 flex-shrink-0 mt-0.5">
+            <div className="w-2 h-2 rounded-full bg-amber-500 border-2 border-amber-400" />
+            <div className="w-px h-4 bg-slate-700" />
+          </div>
+          <div>
+            <span className="text-[9px] font-mono font-bold text-slate-300">Rule Engine ({anomalies.length} alert{anomalies.length !== 1 ? 's' : ''})</span>
+            <div className="space-y-0.5 mt-0.5">
+              {anomalies.slice(0, 2).map((a, i) => (
+                <div key={i} className="text-[8px] font-mono text-slate-500 truncate">
+                  [{a.protocol_id ?? '—'}] {a.category}: {a.value.toFixed(1)} vs threshold {a.threshold.toFixed(1)}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Step 3: Granite prescription */}
+      {cms.length > 0 && (
+        <div className="flex items-start gap-2">
+          <div className="flex flex-col items-center gap-0.5 flex-shrink-0 mt-0.5">
+            <div className="w-2 h-2 rounded-full bg-sky-500 border-2 border-sky-400" />
+          </div>
+          <div>
+            <span className="text-[9px] font-mono font-bold text-sky-400">IBM Granite 3.0 → Prescribed</span>
+            <div className="space-y-0.5 mt-0.5">
+              {cms.slice(0, 2).map((cm, i) => (
+                <div key={i} className="text-[8px] font-mono text-slate-400">
+                  [{cm.protocol_id}] {cm.title}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
+interface ChatMessage { role: 'user' | 'assistant'; content: string }
+
+// ─── Main component ───────────────────────────────────────────────────────────
 export default function FlightSurgeonAI({ crewState, activeScenario, apiBase }: Props) {
-  const [briefing, setBriefing]       = useState<AgentBriefingResponse | null>(null)
-  const [briefingLoading, setBL]      = useState(false)
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { role: 'assistant', content: 'AegisCrew AI Flight Surgeon online. All crew under autonomous medical supervision. Ask me anything about current crew health, risk assessments, or active countermeasures.' },
-  ])
-  const [chatInput, setChatInput]     = useState('')
-  const [chatLoading, setCL]          = useState(false)
-  const [tab, setTab]                 = useState<'briefing' | 'countermeasures' | 'chat'>('briefing')
-  const chatEndRef                    = useRef<HTMLDivElement>(null)
+  const [briefing, setBriefing]     = useState<AgentBriefingResponse | null>(null)
+  const [briefingLoading, setBL]    = useState(false)
+  const [briefingTs, setBriefingTs] = useState<number>(Date.now())
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([{
+    role: 'assistant',
+    content: 'AegisCrew AI Flight Surgeon online. All crew under autonomous medical supervision.\n\nAsk me anything about current crew health, risk assessments, or active countermeasures.',
+  }])
+  const [chatInput, setChatInput]   = useState('')
+  const [chatLoading, setCL]        = useState(false)
+  const [tab, setTab]               = useState<'briefing' | 'countermeasures' | 'chain' | 'chat'>('briefing')
+
+  // Track previous RED crew for sound cue
+  const prevRedCrew = useRef<Set<string>>(new Set())
+  const chatEndRef  = useRef<HTMLDivElement>(null)
 
   const allCountermeasures: Countermeasure[] = crewState.crew.flatMap((a) => a.active_countermeasures)
 
-  const fetchBriefing = async () => {
+  // Fire sound on new RED transitions
+  useEffect(() => {
+    const currentRed = new Set(crewState.crew.filter(a => a.risk.status === 'RED').map(a => a.profile.id))
+    const newRed = [...currentRed].filter(id => !prevRedCrew.current.has(id))
+    if (newRed.length > 0) playAlertTone()
+    prevRedCrew.current = currentRed
+  }, [crewState])
+
+  const fetchBriefing = useCallback(async () => {
     setBL(true)
     try {
       const res = await fetch(`${apiBase}/api/agent/briefing`, {
-        method:  'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ mission_elapsed_day: crewState.mission_elapsed_day, active_scenario: activeScenario }),
+        body: JSON.stringify({ mission_elapsed_day: crewState.mission_elapsed_day, active_scenario: activeScenario }),
       })
       const data: AgentBriefingResponse = await res.json()
       setBriefing(data)
+      setBriefingTs(Date.now())
     } catch (e) {
       console.error('Briefing error', e)
     } finally {
       setBL(false)
     }
-  }
+  }, [apiBase, crewState.mission_elapsed_day, activeScenario])
 
   const sendChat = async () => {
     if (!chatInput.trim() || chatLoading) return
@@ -115,85 +221,81 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase }: 
     setCL(true)
     try {
       const res = await fetch(`${apiBase}/api/agent/chat`, {
-        method:  'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ user_message: msg, active_scenario: activeScenario }),
+        body: JSON.stringify({ user_message: msg, active_scenario: activeScenario }),
       })
       const data: AgentChatResponse = await res.json()
       setChatMessages((prev) => [...prev, { role: 'assistant', content: data.reply }])
-    } catch (e) {
-      setChatMessages((prev) => [...prev, { role: 'assistant', content: '⚠ Communication error. Check API connection.' }])
+    } catch {
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: '⚠ Communication error.' }])
     } finally {
       setCL(false)
     }
   }
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [chatMessages])
-
-  useEffect(() => {
-    fetchBriefing()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeScenario])
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [chatMessages])
+  useEffect(() => { fetchBriefing() }, [activeScenario]) // eslint-disable-line
 
   return (
     <section className="space-y-3">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header row */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xs font-mono font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
           <BrainCircuit className="w-4 h-4 text-sky-400" />
-          <span>IBM Granite 3.0 — AI Flight Surgeon</span>
+          IBM Granite 3.0 — AI Flight Surgeon
         </h2>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-slate-500 font-mono hidden sm:block">ibm/granite-3-8b-instruct</span>
           {briefing?.mock_mode && (
             <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-950/40 text-amber-400 border border-amber-500/30 font-mono font-semibold">
               MOCK MODE
             </span>
           )}
+          <span className="text-[10px] text-slate-500 font-mono hidden sm:block">ibm/granite-3-8b-instruct</span>
         </div>
       </div>
 
+      {/* Decision timer — core value prop: AI vs 22-min Earth delay */}
+      <DecisionTimer
+        decisionTimestampMs={briefingTs}
+        commsDelaySeconds={crewState.comms_delay_seconds}
+      />
+
       <div className="bg-[#0C1222] border border-[#1A2438] rounded-lg p-4 space-y-4">
-        {/* Tab Bar */}
+        {/* Tab bar */}
         <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-[#1A2438] pb-3">
-          <div className="flex gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
             {[
               { id: 'briefing',        label: 'Executive Briefing', icon: FileText },
               { id: 'countermeasures', label: `Active Protocols (${allCountermeasures.length})`, icon: AlertTriangle },
-              { id: 'chat',            label: 'Flight Surgeon Chat', icon: MessageSquare },
+              { id: 'chain',           label: 'AI Explainability', icon: Link2 },
+              { id: 'chat',            label: 'Surgeon Chat', icon: MessageSquare },
             ].map((t) => {
               const Icon = t.icon
               const isActive = tab === t.id
               return (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id as typeof tab)}
-                  className={`px-3 py-1.5 rounded text-xs font-mono font-medium transition-colors flex items-center gap-1.5 ${
+                <button key={t.id} onClick={() => setTab(t.id as typeof tab)}
+                  className={`px-2.5 py-1.5 rounded text-xs font-mono font-medium transition-colors flex items-center gap-1.5 ${
                     isActive
                       ? 'bg-slate-800 border border-slate-700 text-slate-100'
                       : 'bg-[#080D1A] border border-[#162033] text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   <Icon className="w-3 h-3" />
-                  <span>{t.label}</span>
+                  <span className="hidden sm:inline">{t.label}</span>
+                  <span className="sm:hidden">{t.id === 'countermeasures' ? `Protocols (${allCountermeasures.length})` : t.label.split(' ')[0]}</span>
                 </button>
               )
             })}
           </div>
-
-          <button
-            onClick={fetchBriefing}
-            disabled={briefingLoading}
-            className="px-2.5 py-1 rounded bg-[#080D1A] border border-[#162033] hover:border-slate-600 text-xs font-mono text-slate-300 flex items-center gap-1 transition disabled:opacity-50"
-          >
+          <button onClick={fetchBriefing} disabled={briefingLoading}
+            className="px-2.5 py-1 rounded bg-[#080D1A] border border-[#162033] hover:border-slate-600 text-xs font-mono text-slate-300 flex items-center gap-1 transition disabled:opacity-50">
             <RefreshCw className={`w-3 h-3 ${briefingLoading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </button>
         </div>
 
-        {/* Tab 1 — Executive Briefing */}
+        {/* TAB: Executive Briefing */}
         {tab === 'briefing' && (
           <div className="p-3.5 rounded bg-[#080D1A] border border-[#162033] text-xs font-mono leading-relaxed text-slate-300 whitespace-pre-wrap max-h-[420px] overflow-y-auto">
             {briefingLoading ? (
@@ -202,12 +304,12 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase }: 
                 <span>IBM Granite 3.0 synthesizing clinical briefing...</span>
               </div>
             ) : (
-              briefing?.briefing || 'No briefing available.'
+              briefing?.briefing || 'Click "Refresh" to generate the daily executive situation report.'
             )}
           </div>
         )}
 
-        {/* Tab 2 — Countermeasures */}
+        {/* TAB: Countermeasures */}
         {tab === 'countermeasures' && (
           <div className="space-y-2.5 max-h-[420px] overflow-y-auto pr-1">
             {allCountermeasures.length === 0 ? (
@@ -220,14 +322,24 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase }: 
           </div>
         )}
 
-        {/* Tab 3 — Interactive Chat Console */}
+        {/* TAB: AI Explainability Chain */}
+        {tab === 'chain' && (
+          <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
+            <p className="text-[10px] text-slate-500 font-mono">
+              Tracing the decision pipeline: ML z-scores → threshold rules → Granite 3.0 prescription, per crew member.
+            </p>
+            {crewState.crew.map((astro) => (
+              <ExplainabilityChain key={astro.profile.id} astro={astro} />
+            ))}
+          </div>
+        )}
+
+        {/* TAB: Chat */}
         {tab === 'chat' && (
           <div className="space-y-3">
-            {/* Messages Stream */}
             <div className="p-3 rounded bg-[#080D1A] border border-[#162033] space-y-2.5 max-h-[320px] overflow-y-auto">
               {chatMessages.map((m, i) => (
-                <div
-                  key={i}
+                <div key={i}
                   className={`p-2.5 rounded text-xs leading-relaxed font-mono ${
                     m.role === 'user'
                       ? 'bg-slate-800/80 border border-slate-700 text-slate-200 ml-6'
@@ -235,11 +347,10 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase }: 
                   }`}
                 >
                   <div className="font-bold text-[10px] mb-1">
-                    {m.role === 'user' ? (
-                      <span className="text-sky-400">COMMANDER</span>
-                    ) : (
-                      <span className="text-slate-400">IBM GRANITE 3.0 FLIGHT SURGEON</span>
-                    )}
+                    {m.role === 'user'
+                      ? <span className="text-sky-400">COMMANDER</span>
+                      : <span className="text-slate-400">IBM GRANITE 3.0 FLIGHT SURGEON</span>
+                    }
                   </div>
                   <div className="whitespace-pre-wrap text-[11px]">{m.content}</div>
                 </div>
@@ -253,28 +364,31 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase }: 
               <div ref={chatEndRef} />
             </div>
 
-            {/* Input Bar */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault()
-                sendChat()
-              }}
-              className="flex gap-2"
-            >
+            {/* Quick prompts */}
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                "Why is the crew_wide_alert active?",
+                "What's the 6-hour prediction for Commander Vance?",
+                "Explain the ML anomaly score for ASTRO-02",
+                "What triggered PROT-CO2-HYPERCAPNIA-02?",
+              ].map(q => (
+                <button key={q} onClick={() => setChatInput(q)}
+                  className="text-[9px] font-mono px-2 py-1 rounded border border-[#1E293B] text-slate-400 hover:border-sky-500/40 hover:text-sky-300 transition-all">
+                  {q}
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); sendChat() }} className="flex gap-2">
               <input
-                type="text"
-                value={chatInput}
+                type="text" value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 placeholder="Ask AI Medical Officer (e.g. 'Explain why Mark Jensen was flagged for EVA hold')..."
                 className="flex-1 bg-[#080D1A] border border-[#162033] focus:border-sky-500 text-white text-xs font-mono rounded px-3 py-2 outline-none"
               />
-              <button
-                type="submit"
-                disabled={chatLoading || !chatInput.trim()}
-                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-mono text-xs rounded flex items-center gap-1.5 transition disabled:opacity-40"
-              >
-                <span>Send</span>
-                <Send className="w-3 h-3" />
+              <button type="submit" disabled={chatLoading || !chatInput.trim()}
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-mono text-xs rounded flex items-center gap-1.5 transition disabled:opacity-40">
+                <span>Send</span><Send className="w-3 h-3" />
               </button>
             </form>
           </div>
