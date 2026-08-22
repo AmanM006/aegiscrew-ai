@@ -115,7 +115,7 @@ export default function MissionControlPage() {
 
       {/* Footer */}
       <footer className="border-t border-[#1F2D45] mt-12 py-4 text-center text-xs text-[#6B7280]">
-        AegisCrew AI · IBM Bob AI Builders Challenge 2026 · Powered by IBM watsonx.ai &amp; Granite 3.0
+        AegisCrew AI · IBM Bob AI Builders Challenge 2026 · Powered by IBM watsonx.ai &amp; Granite 4
         · NASA-STD-3001 · NASA SP-2010-3407
       </footer>
     </div>

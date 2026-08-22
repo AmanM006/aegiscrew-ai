@@ -25,10 +25,48 @@ const URGENCY_COLOR: Record<string, string> = {
 }
 
 // ─── Sound cue ────────────────────────────────────────────────────────────────
+// Chrome blocks autoplay until first user gesture. We track whether the user
+// has interacted with the page and resume any suspended AudioContext.
+let _audioCtx: AudioContext | null = null
+
+function _getAudioCtx(): AudioContext | null {
+  if (typeof window === 'undefined') return null
+  try {
+    if (!_audioCtx) {
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+      _audioCtx = new AudioCtx()
+    }
+    // Resume if Chrome suspended it (autoplay policy)
+    if (_audioCtx.state === 'suspended') {
+      _audioCtx.resume().catch(() => {/* ignore */})
+    }
+    return _audioCtx
+  } catch {
+    return null
+  }
+}
+
+// Prime the AudioContext on first user interaction so it's ready for alerts
+function _primeAudio() {
+  _getAudioCtx()
+  document.removeEventListener('click', _primeAudio)
+  document.removeEventListener('keydown', _primeAudio)
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('click',   _primeAudio, { once: true, passive: true })
+  document.addEventListener('keydown', _primeAudio, { once: true, passive: true })
+}
+
 function playAlertTone() {
   try {
-    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
-    const osc = ctx.createOscillator()
+    const ctx = _getAudioCtx()
+    if (!ctx) return
+    if (ctx.state === 'suspended') {
+      // Queue the tone to fire after resume completes
+      ctx.resume().then(() => playAlertTone()).catch(() => {/* blocked */})
+      return
+    }
+    const osc  = ctx.createOscillator()
     const gain = ctx.createGain()
     osc.connect(gain)
     gain.connect(ctx.destination)
@@ -281,10 +319,20 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase }: 
           IBM Granite 4 — AI Flight Surgeon
         </h2>
         <div className="flex items-center gap-2">
-          {briefing?.mock_mode && (
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-950/40 text-amber-400 border border-amber-500/30 font-mono font-semibold">
-              MOCK MODE
-            </span>
+          {briefing !== null && (
+            briefing.mock_mode ? (
+              <span className="text-[9px] px-2 py-0.5 rounded border font-mono font-bold flex items-center gap-1"
+                style={{ background: 'rgba(245,158,11,.12)', borderColor: 'rgba(245,158,11,.35)', color: '#F59E0B' }}>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+                MOCK MODE
+              </span>
+            ) : (
+              <span className="text-[9px] px-2 py-0.5 rounded border font-mono font-bold flex items-center gap-1"
+                style={{ background: 'rgba(16,185,129,.12)', borderColor: 'rgba(16,185,129,.35)', color: '#10B981' }}>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                LIVE · granite-4-h-small
+              </span>
+            )
           )}
           <span className="text-[10px] text-slate-500 font-mono hidden sm:block">ibm/granite-4-h-small</span>
         </div>

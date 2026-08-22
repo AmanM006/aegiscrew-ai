@@ -148,27 +148,36 @@ export default function AstronautCard({ astro, prescribing, prescriptionText, on
 
           {/* ML Confidence Badge — always visible */}
           <div
-            className="flex items-center gap-1.5 px-2 py-1 rounded border mb-2"
+            className="rounded border mb-2 overflow-hidden"
             style={{
               background:  isMLAnomaly ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)',
               borderColor: isMLAnomaly ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)',
             }}
           >
-            <BrainCircuit
-              className="w-3 h-3 flex-shrink-0"
-              style={{ color: isMLAnomaly ? '#EF4444' : '#10B981' }}
-            />
-            <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
-              <span
-                className="text-[9px] font-mono font-semibold"
+            <div className="flex items-center gap-1.5 px-2 py-1">
+              <BrainCircuit
+                className="w-3 h-3 flex-shrink-0"
                 style={{ color: isMLAnomaly ? '#EF4444' : '#10B981' }}
-              >
-                {isMLAnomaly ? '⚠ ML ANOMALY' : '✓ ML NOMINAL'}
-              </span>
-              <span className="text-[9px] text-slate-500 font-mono">
-                {mlConf}
-              </span>
+              />
+              <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
+                <span
+                  className="text-[9px] font-mono font-semibold"
+                  style={{ color: isMLAnomaly ? '#EF4444' : '#10B981' }}
+                >
+                  {isMLAnomaly ? '⚠ ML ANOMALY' : '✓ ML NOMINAL'}
+                </span>
+                <span className="text-[9px] text-slate-500 font-mono">
+                  {mlConf}
+                </span>
+              </div>
             </div>
+            {/* Confidence interpretation — turns low nominal scores into a feature */}
+            {!isMLAnomaly && (
+              <div className="px-2 pb-1.5 text-[8px] font-mono text-slate-600 leading-tight">
+                Low deviation from baseline → high model confidence in nominal state.
+                Confidence rises sharply when anomaly patterns emerge.
+              </div>
+            )}
           </div>
 
           {/* Contributing features from ML */}

@@ -126,7 +126,7 @@ Bob generated the complete repository structure from a single architectural desc
 Bob analyzed the `nasa_iss_timeseries_dataset.csv` schema (1,440 rows × 18 columns) and designed the full Pydantic v2 type hierarchy — `TelemetryFrame`, `AstronautVitals`, `RadiationDosimetry`, `CabinAtmosphere`, `CognitiveAcuity` — ensuring exact field-name alignment with the CSV columns for zero-configuration ingestion.
 
 ### 3. IBM Granite Prompt Engineering
-Bob engineered the multi-modal clinical prompts for Granite 3.0, including the RAG context injection pattern that prepends NASA SP-2010-3407 protocols directly into each inference call, ensuring grounded, protocol-cited clinical outputs. Also designed the systems-alert briefing mode that reframes fleet-wide anomalies as environmental root-cause events rather than individual health issues.
+Bob engineered the multi-modal clinical prompts for Granite 4, including the RAG context injection pattern that prepends NASA SP-2010-3407 protocols directly into each inference call, ensuring grounded, protocol-cited clinical outputs. Also designed the systems-alert briefing mode that reframes fleet-wide anomalies as environmental root-cause events rather than individual health issues.
 
 ### 4. Biomathematical Risk Algorithms
 Bob implemented the three-process fatigue model (Borbély), HRV autonomic tone decay scoring, SPE radiation risk classifier, and the composite Mission Readiness Score formula — all grounded in NASA-STD-3001 threshold values extracted from the real data files.
@@ -300,7 +300,7 @@ Base URL: `http://localhost:8000`
 
 AegisCrew AI demonstrates **three convergent innovations** for deep space human survival:
 
-1. **Autonomous Medical Intelligence at the Edge** — No ground connectivity required. The entire clinical decision pipeline runs aboard the spacecraft using IBM Granite 3.0, eliminating the 22-minute latency barrier.
+1. **Autonomous Medical Intelligence at the Edge** — No ground connectivity required. The entire clinical decision pipeline runs aboard the spacecraft using IBM Granite 4 (`ibm/granite-4-h-small`), eliminating the 22-minute latency barrier.
 
 2. **Grounded, Explainable AI** — Every Granite response is backed by Clinical RAG retrieval from NASA SP-2010-3407. The AI never hallucinates countermeasures — it cites exact protocol IDs, dosages, and wavelengths.
 

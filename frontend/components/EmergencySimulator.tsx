@@ -49,7 +49,7 @@ export default function EmergencySimulator({ activeScenario, onScenario }: Emerg
               Mission Simulation Scenarios
             </h2>
             <p className="text-[11px] text-slate-400 font-sans mt-0.5">
-              Simulate clinical telemetry anomalies to evaluate autonomous IBM Granite 3.0 countermeasures.
+              Simulate clinical telemetry anomalies to evaluate autonomous IBM Granite 4 countermeasures.
             </p>
           </div>
         </div>

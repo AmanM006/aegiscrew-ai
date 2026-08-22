@@ -1,5 +1,5 @@
 """
-AegisCrew AI — IBM Granite 3.0 Flight Surgeon Agent
+AegisCrew AI — IBM Granite 4 Flight Surgeon Agent
 Integrates with ibm-watsonx-ai SDK; falls back to deterministic mock
 responses when credentials are absent (demo / offline mode).
 """
@@ -151,7 +151,7 @@ ACTIVE CLINICAL ALERTS:
 {anomaly_text}
 
 FLIGHT SURGEON DIRECTIVE:
-All crew health parameters are under continuous autonomous monitoring. IBM Granite 3.0
+All crew health parameters are under continuous autonomous monitoring. IBM Granite 4
 AI Medical Officer is processing bio-telemetry streams using hybrid rule-based + IsolationForest
 ML anomaly detection (trained on 1,440 NASA OSDR historical samples). Cross-crew correlation
 engine is monitoring for shared environmental root causes. No ground flight surgeon uplink
@@ -215,7 +215,7 @@ query individual crew risk assessments via /api/crew/status.
 def generate_executive_briefing(crew_state: CrewStateResponse) -> AgentBriefingResponse:
     """
     Generate a daily executive briefing for the Mission Commander.
-    Attempts IBM Granite 3.0; falls back to structured mock.
+    Attempts IBM Granite 4; falls back to structured mock.
     """
     # Build RAG context from all active anomalies
     all_anomalies: List[RiskFactor] = []
