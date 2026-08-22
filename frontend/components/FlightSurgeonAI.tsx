@@ -83,16 +83,70 @@ function playAlertTone() {
   }
 }
 
+// ─── Authority-mode config per comms latency ─────────────────────────────────
+function getAuthorityMode(commsDelaySeconds: number) {
+  if (commsDelaySeconds >= 600) {
+    return {
+      badge:    '⚡ AUTONOMOUS EDGE EXECUTION',
+      badgeColor: '#10B981',
+      badgeBg:  '#10B98115',
+      badgeBorder: '#10B98140',
+      subtext:  `Earth uncontactable (${Math.round(commsDelaySeconds / 60)}m latency). Onboard AI authorized to execute protocol immediately.`,
+      btnLabel: (approved: boolean) => approved ? 'Protocol Executed' : 'Execute Protocol Now',
+      btnStyle: (approved: boolean) => approved
+        ? { borderColor: '#10B981', background: '#10B98120', color: '#10B981' }
+        : { borderColor: '#EF4444', background: '#EF444415', color: '#EF4444' },
+    }
+  }
+  if (commsDelaySeconds <= 1.5) {
+    return {
+      badge:    '📡 RELAYED TO HOUSTON FLIGHT SURGEON',
+      badgeColor: '#38BDF8',
+      badgeBg:  '#38BDF815',
+      badgeBorder: '#38BDF840',
+      subtext:  'Direct real-time link active (0s). Ground Medical Officer has primary authority — AI in advisory role.',
+      btnLabel: (approved: boolean) => approved ? 'Ground Doctor Signed' : 'Awaiting Ground Doctor Signature',
+      btnStyle: (_approved: boolean) => ({ borderColor: '#38BDF8', background: '#38BDF810', color: '#38BDF8' }),
+    }
+  }
+  // Lunar Gateway
+  return {
+    badge:    '🤝 DUAL EARTH–AI HANDSHAKE',
+    badgeColor: '#F59E0B',
+    badgeBg:  '#F59E0B15',
+    badgeBorder: '#F59E0B40',
+    subtext:  'Near-space relay (1.3s). Collaborative edge–ground clinical verification required.',
+    btnLabel: (approved: boolean) => approved ? 'Handshake Confirmed' : 'Confirm Dual Verification',
+    btnStyle: (approved: boolean) => approved
+      ? { borderColor: '#F59E0B', background: '#F59E0B20', color: '#F59E0B' }
+      : { borderColor: '#F59E0B60', background: '#F59E0B10', color: '#F59E0B' },
+  }
+}
+
 // ─── Countermeasure card ──────────────────────────────────────────────────────
-function CountermeasureCard({ cm }: { cm: Countermeasure }) {
+function CountermeasureCard({ cm, commsDelaySeconds }: { cm: Countermeasure; commsDelaySeconds: number }) {
   const [approved, setApproved] = useState(false)
   const color = URGENCY_COLOR[cm.urgency] || '#64748B'
+  const authority = getAuthorityMode(commsDelaySeconds)
+
   return (
     <div
       className="rounded-lg border p-3.5 flex flex-col gap-2 transition-colors bg-[#080D1A]"
       style={{ borderColor: approved ? '#10B98150' : color + '30' }}
     >
-      <div className="flex items-start justify-between gap-2">
+      {/* ── Authority mode badge ── */}
+      <div
+        className="flex items-center gap-1.5 px-2 py-1 rounded border text-[9px] font-mono font-bold"
+        style={{ background: authority.badgeBg, borderColor: authority.badgeBorder, color: authority.badgeColor }}
+      >
+        <span>{authority.badge}</span>
+      </div>
+      <div className="text-[10px] font-mono leading-snug" style={{ color: authority.badgeColor + 'CC' }}>
+        {authority.subtext}
+      </div>
+
+      {/* ── Protocol header row ── */}
+      <div className="flex items-start justify-between gap-2 pt-1 border-t border-[#162033]">
         <div className="flex items-center gap-1.5">
           <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded"
             style={{ background: color + '15', color }}>{cm.urgency}</span>
@@ -101,12 +155,10 @@ function CountermeasureCard({ cm }: { cm: Countermeasure }) {
         <button
           onClick={() => setApproved((a) => !a)}
           className="text-[11px] font-mono font-medium px-2.5 py-0.5 rounded border transition-colors flex items-center gap-1"
-          style={approved
-            ? { borderColor: '#10B981', background: '#10B98120', color: '#10B981' }
-            : { borderColor: '#1E293B', background: '#0C1222', color: '#94A3B8' }}
+          style={authority.btnStyle(approved)}
         >
           {approved ? <CheckCircle2 className="w-3 h-3" /> : null}
-          <span>{approved ? 'Approved' : 'Approve Protocol'}</span>
+          <span>{authority.btnLabel(approved)}</span>
         </button>
       </div>
       <div className="text-xs font-semibold text-slate-100">{cm.title}</div>
@@ -491,7 +543,9 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, co
                 ✓ All crew members nominal. No active countermeasures required.
               </div>
             ) : (
-              allCountermeasures.map((cm, i) => <CountermeasureCard key={i} cm={cm} />)
+              allCountermeasures.map((cm, i) => (
+                <CountermeasureCard key={i} cm={cm} commsDelaySeconds={commsDelaySeconds ?? crewState.comms_delay_seconds} />
+              ))
             )}
           </div>
         )}

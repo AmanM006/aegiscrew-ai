@@ -251,17 +251,41 @@ def generate_executive_briefing(crew_state: CrewStateResponse) -> AgentBriefingR
     rag_ctx = build_rag_context(all_anomalies, "\n".join(crew_status_lines))
     anomaly_summary = format_anomaly_summary(all_anomalies)
 
+    # Comms delay → operational authority context injected into every prompt
+    comms_s = crew_state.comms_delay_seconds
+    if comms_s == 0:
+        comms_context = (
+            "COMMS STATUS: Houston Mission Control ONLINE (0s latency). "
+            "Real-time telemetry streaming to Johnson Space Center Flight Surgeon. "
+            "AI is operating in PASSIVE SURVEILLANCE mode — ground medical team has primary clinical authority. "
+            "Frame recommendations as advisory inputs for the ground flight surgeon, not autonomous orders."
+        )
+    elif comms_s <= 5:
+        comms_context = (
+            f"COMMS STATUS: Near-space relay active ({comms_s:.1f}s latency, Lunar Gateway). "
+            "Ground advisory mode — collaborative edge-ground clinical verification. "
+            "AI provides real-time risk analysis; ground confirms high-impact interventions."
+        )
+    else:
+        comms_context = (
+            f"COMMS STATUS: DEEP SPACE — {comms_s:.0f}s one-way delay (20-min Earth reply blackout). "
+            "AI operating with FULL AUTONOMOUS MEDICAL COMMAND under NASA SP-2010-3407 Sec 4.3.1. "
+            "No ground physician consultation possible. All countermeasures are AI-autonomous orders."
+        )
+
     # Reframe prompt tone based on systems alert presence
-    briefing_instruction = (
-        "SYSTEMS ALERT MODE: Lead with the systemic fleet-wide root cause before discussing "
-        "individual crew members. Reframe individual anomalies as symptoms of the shared "
-        "environmental root cause, not isolated health events."
-        if crew_state.crew_wide_alert else
-        "Generate a professional daily executive briefing for Mission Commander Elena Vance."
-    )
+    if crew_state.crew_wide_alert:
+        briefing_instruction = (
+            "SYSTEMS ALERT MODE: Lead with the systemic fleet-wide root cause before discussing "
+            "individual crew members. Reframe individual anomalies as symptoms of the shared "
+            "environmental root cause, not isolated health events."
+        )
+    else:
+        briefing_instruction = "Generate a professional daily executive briefing for Mission Commander Elena Vance."
 
     prompt = f"""You are the autonomous AegisCrew AI Flight Surgeon.
 {briefing_instruction}
+{comms_context}
 {systems_alert_text}
 {rag_ctx}
 
@@ -370,14 +394,31 @@ def chat_flight_surgeon(
 
     model = _get_watsonx_model()
 
+    # Build comms-authority context (same logic as briefing)
+    comms_context_chat = ""
+    if current_crew_state:
+        comms_s = current_crew_state.comms_delay_seconds
+        if comms_s == 0:
+            comms_context_chat = (
+                "COMMS: Houston ONLINE (0s). You are in ADVISORY mode — ground flight surgeon has primary authority."
+            )
+        elif comms_s <= 5:
+            comms_context_chat = (
+                f"COMMS: Lunar relay ({comms_s:.1f}s). Dual edge-ground verification in effect."
+            )
+        else:
+            comms_context_chat = (
+                f"COMMS: DEEP SPACE ({comms_s:.0f}s delay). You have FULL AUTONOMOUS MEDICAL COMMAND. "
+                "No ground consultation possible."
+            )
+
     if model is not None:
         # ── Live Granite multi-turn chat ──────────────────────────────────────
-        # Prepend system + RAG context, then replay up to 4 prior turns,
-        # then append the current user message.
-        _MAX_HISTORY = 4   # keep last N turns (user+assistant pairs) to stay within token budget
+        _MAX_HISTORY = 4
         system_content = (
             f"{_SYSTEM_PROMPT}\n\n"
             f"Current Scenario: {active_scenario}\n"
+            f"{comms_context_chat}\n"
             f"{rag_ctx}"
         )
         messages: List[Dict[str, str]] = [{"role": "system", "content": system_content}]

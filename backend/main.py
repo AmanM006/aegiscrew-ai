@@ -43,6 +43,7 @@ from backend.agents.flight_surgeon_granite import (
     generate_executive_briefing,
     prescribe_countermeasures as _prescribe_countermeasures,
 )
+from backend.data.nasa_loader import get_protocol_by_id
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -107,15 +108,28 @@ def _build_crew_state(scenario: str = "nominal") -> CrewStateResponse:
             target_sleep_hours=prof_raw.get("baseline", {}).get("target_sleep_hours", 8.0),
         )
 
-        # Auto-prescribe for active anomalies
-        from backend.agents.flight_surgeon_granite import prescribe_countermeasures as prescribe
+        # Map anomalies → structured Countermeasures via fast in-memory protocol lookup
+        # (NO live LLM call here — keeps GET /api/crew/status at <10ms)
+        # Full IBM Granite synthesis runs only in POST /api/agent/prescribe (on-demand).
+        from backend.core.telemetry_schema import Countermeasure
+        _urgency_map = {"CRITICAL": "IMMEDIATE", "HIGH": "URGENT", "MODERATE": "PRIORITY", "LOW": "ROUTINE"}
         countermeasures = []
-        if risk.anomalies:
-            try:
-                resp = prescribe(cid, risk.anomalies)
-                countermeasures = resp.countermeasures
-            except Exception:
-                pass
+        seen_pids: set = set()
+        for anomaly in risk.anomalies:
+            pid = anomaly.protocol_id
+            if pid and pid not in seen_pids:
+                prot = get_protocol_by_id(pid)
+                if prot:
+                    countermeasures.append(Countermeasure(
+                        protocol_id=prot.get("id", pid),
+                        title=prot.get("title", "Clinical Intervention"),
+                        category=prot.get("category", anomaly.category),
+                        clinical_action=prot.get("clinical_action", ""),
+                        operational_impact=prot.get("operational_impact", ""),
+                        urgency=_urgency_map.get(anomaly.severity, "PRIORITY"),
+                        citations=prot.get("citations", []),
+                    ))
+                    seen_pids.add(pid)
 
         # Predictive trajectory
         from backend.ml_engine.prediction_engine import predict_crew_trajectory
