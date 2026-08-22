@@ -12,25 +12,26 @@ from pathlib import Path
 
 # Auto-load .env if python-dotenv is available
 # Searches: backend/.env → project root/.env
+# ---------------------------------------------------------------------------
+# Base paths  (needed before dotenv load so we can locate .env)
+# ---------------------------------------------------------------------------
+BACKEND_DIR    = Path(__file__).resolve().parent.parent   # aegiscrew-ai/backend/
+REPO_ROOT      = BACKEND_DIR.parent                       # aegiscrew-ai/
+WORKSPACE_ROOT = REPO_ROOT.parent                         # august-ibm/ (workspace root)
+
 def _load_dotenv() -> None:
+    """Load .env into os.environ before any os.getenv() calls below."""
     try:
         from dotenv import load_dotenv
-        _here = Path(__file__).resolve().parent.parent  # backend/
-        for candidate in (_here / ".env", _here.parent / ".env"):
+        for candidate in (BACKEND_DIR / ".env", REPO_ROOT / ".env"):
             if candidate.exists():
-                load_dotenv(candidate, override=False)
+                # override=True so the file always wins over a stale empty shell var
+                load_dotenv(candidate, override=True)
                 break
     except ImportError:
         pass  # python-dotenv not installed — rely on OS env vars
 
 _load_dotenv()
-
-# ---------------------------------------------------------------------------
-# Base paths
-# ---------------------------------------------------------------------------
-BACKEND_DIR    = Path(__file__).resolve().parent.parent   # aegiscrew-ai/backend/
-REPO_ROOT      = BACKEND_DIR.parent                       # aegiscrew-ai/
-WORKSPACE_ROOT = REPO_ROOT.parent                         # august-ibm/ (workspace root)
 
 # Real NASA data lives one level above the aegiscrew-ai/ project folder
 def _resolve_data_dir() -> Path:
@@ -48,6 +49,7 @@ NASA_TIMESERIES_PATH = DATA_DIR / "nasa_osdr" / "nasa_iss_timeseries_dataset.csv
 
 # ---------------------------------------------------------------------------
 # IBM watsonx.ai credentials  (optional — falls back to mock mode)
+# Read AFTER _load_dotenv() so the .env values are in os.environ
 # ---------------------------------------------------------------------------
 WATSONX_API_KEY    = os.getenv("WATSONX_API_KEY", "")
 WATSONX_PROJECT_ID = os.getenv("WATSONX_PROJECT_ID", "")

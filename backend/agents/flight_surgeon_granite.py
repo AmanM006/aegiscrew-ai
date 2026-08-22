@@ -10,13 +10,9 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from backend.core.config import (
-    GRANITE_MODEL_ID,
-    WATSONX_API_KEY,
-    WATSONX_MOCK_MODE,
-    WATSONX_PROJECT_ID,
-    WATSONX_URL,
-)
+import backend.core.config as _cfg
+# NOTE: all credential/flag reads use _cfg.<NAME> at call-time, NOT frozen import-time
+# copies, so that .env loaded by config._load_dotenv() is always honoured.
 from backend.core.telemetry_schema import (
     AgentBriefingResponse,
     AgentChatResponse,
@@ -36,23 +32,28 @@ _wx_model = None
 
 
 def _get_watsonx_model():
+    """
+    Lazy-init IBM watsonx ModelInference.
+    Reads _cfg.WATSONX_MOCK_MODE at *call time* so that credentials loaded from
+    .env by config._load_dotenv() are always honoured regardless of import order.
+    """
     global _wx_model
     if _wx_model is not None:
         return _wx_model
-    if WATSONX_MOCK_MODE:
+    # Re-evaluate mock flag from the live module attribute, not a frozen import copy
+    if _cfg.WATSONX_MOCK_MODE:
         return None
     try:
         from ibm_watsonx_ai import Credentials
         from ibm_watsonx_ai.foundation_models import ModelInference
 
-        creds = Credentials(url=WATSONX_URL, api_key=WATSONX_API_KEY)
-        # Use chat API params (granite-4 uses max_tokens not max_new_tokens)
+        creds = Credentials(url=_cfg.WATSONX_URL, api_key=_cfg.WATSONX_API_KEY)
         _wx_model = ModelInference(
-            model_id=GRANITE_MODEL_ID,
+            model_id=_cfg.GRANITE_MODEL_ID,
             credentials=creds,
-            project_id=WATSONX_PROJECT_ID,
+            project_id=_cfg.WATSONX_PROJECT_ID,
         )
-        logger.info("IBM watsonx.ai Granite model initialised: %s", GRANITE_MODEL_ID)
+        logger.info("IBM watsonx.ai Granite model initialised: %s", _cfg.GRANITE_MODEL_ID)
     except Exception as exc:
         logger.warning("watsonx init failed (%s) — falling back to mock mode", exc)
         _wx_model = None
@@ -281,7 +282,7 @@ Format the briefing with: 1) Fleet Status Overview 2) Per-Crew Risk Summary 3) A
     return AgentBriefingResponse(
         briefing=response_text,
         generated_at=datetime.now(tz=timezone.utc),
-        model_used=GRANITE_MODEL_ID,
+        model_used=_cfg.GRANITE_MODEL_ID,
         mock_mode=is_mock,
     )
 
@@ -339,7 +340,7 @@ Use numbered steps. Be concise and clinically specific."""
         crew_id=crew_id,
         prescription=response_text,
         countermeasures=countermeasures,
-        model_used=GRANITE_MODEL_ID,
+        model_used=_cfg.GRANITE_MODEL_ID,
         mock_mode=is_mock,
     )
 
@@ -393,7 +394,7 @@ def chat_flight_surgeon(
             response_text = result["choices"][0]["message"]["content"]
             return AgentChatResponse(
                 reply=response_text,
-                model_used=GRANITE_MODEL_ID,
+                model_used=_cfg.GRANITE_MODEL_ID,
                 mock_mode=False,
             )
         except Exception as exc:
@@ -411,6 +412,6 @@ def chat_flight_surgeon(
 
     return AgentChatResponse(
         reply=response_text,
-        model_used=GRANITE_MODEL_ID,
+        model_used=_cfg.GRANITE_MODEL_ID,
         mock_mode=True,
     )

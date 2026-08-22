@@ -504,7 +504,7 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, co
         {/* TAB: Chat */}
         {tab === 'chat' && (
           <div className="space-y-3">
-            <div className="p-3 rounded bg-[#080D1A] border border-[#162033] space-y-2.5 max-h-[320px] overflow-y-auto">
+            <div className="p-3 rounded bg-[#080D1A] border border-[#162033] space-y-2.5 max-h-[520px] min-h-[260px] overflow-y-auto">
               {chatMessages.map((m, i) => (
                 <div key={i}
                   className={`p-2.5 rounded text-xs leading-relaxed font-mono ${
