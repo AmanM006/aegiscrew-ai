@@ -5,6 +5,7 @@ All REST API endpoints for the Mission Control frontend.
 from __future__ import annotations
 
 import logging
+from contextlib import asynccontextmanager
 from typing import List
 
 from fastapi import FastAPI, HTTPException
@@ -46,12 +47,27 @@ from backend.agents.flight_surgeon_granite import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):  # noqa: ARG001
+    """Train IsolationForest models on NASA telemetry at startup."""
+    logger.info("AegisCrew AI startup — training ML anomaly detection models...")
+    try:
+        from backend.ml_engine.anomaly_detector import fit_models
+        fit_models()
+    except Exception as exc:
+        logger.warning("ML model training failed (will use threshold-only mode): %s", exc)
+    yield
+    logger.info("AegisCrew AI shutdown.")
+
+
 app = FastAPI(
     title="AegisCrew AI",
     description="Autonomous Deep-Space Chief Medical Officer & Bio-Telemetry Intelligence Platform",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -116,6 +132,28 @@ def _build_crew_state(scenario: str = "nominal") -> CrewStateResponse:
     from backend.ml_engine.risk_scorer import classify_status
     fleet_status = classify_status(fleet_readiness)
 
+    # Cross-crew correlation check
+    from backend.ml_engine.correlation_engine import detect_crew_wide_pattern
+    latest_frames = [a.latest_frame for a in crew_out]
+    crew_names    = {a.profile.id: a.profile.name for a in crew_out}
+    crew_wide_alert = None
+    try:
+        pattern = detect_crew_wide_pattern(latest_frames, crew_names)
+        if pattern is not None:
+            # Convert dataclass → Pydantic model
+            from backend.core.telemetry_schema import CrewPatternAlert as _CPAlert
+            crew_wide_alert = _CPAlert(
+                pattern_type=pattern.pattern_type,
+                affected_crew=pattern.affected_crew,
+                affected_names=pattern.affected_names,
+                shared_features=pattern.shared_features,
+                likely_root_cause=pattern.likely_root_cause,
+                severity=pattern.severity,
+                recommendation=pattern.recommendation,
+            )
+    except Exception as exc:
+        logger.warning("Correlation engine error (non-fatal): %s", exc)
+
     comms_delay = COMMS_DELAY_PRESETS.get("Mars Transit", 1200.0)
 
     return CrewStateResponse(
@@ -127,6 +165,7 @@ def _build_crew_state(scenario: str = "nominal") -> CrewStateResponse:
         fleet_readiness=round(fleet_readiness, 1),
         fleet_status=fleet_status,
         active_scenario=scenario,
+        crew_wide_alert=crew_wide_alert,
     )
 
 

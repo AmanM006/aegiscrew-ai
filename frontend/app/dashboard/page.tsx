@@ -8,12 +8,10 @@ import CrewMatrix from '@/components/CrewMatrix'
 import TelemetryCharts from '@/components/TelemetryCharts'
 import FlightSurgeonAI from '@/components/FlightSurgeonAI'
 import type { CrewStateResponse } from '@/types/telemetry'
-import Link from 'next/link'
-import { ArrowLeft, Satellite } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-export default function MissionControlDashboard() {
+export default function MissionControlPage() {
   const [crewState, setCrewState] = useState<CrewStateResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -51,21 +49,12 @@ export default function MissionControlDashboard() {
 
   useEffect(() => {
     fetchCrewStatus()
-    const interval = setInterval(fetchCrewStatus, 10_000)
+    const interval = setInterval(fetchCrewStatus, 10_000)   // poll every 10 s
     return () => clearInterval(interval)
   }, [])
 
   return (
-    <div className="min-h-screen bg-[#040711] font-sans antialiased text-[#E2E8F0]">
-      {/* Top Bar with Home Link */}
-      <div className="bg-[#080D1A] border-b border-[#141E33] px-6 py-2 flex items-center justify-between text-xs font-mono">
-        <Link href="/" className="flex items-center gap-1.5 text-slate-400 hover:text-sky-400 transition-colors">
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Return to Mission Overview</span>
-        </Link>
-        <span className="text-slate-500 hidden sm:inline">Artemis II-M Deep Space Transit Flight Surgeon Interface</span>
-      </div>
-
+    <div className="min-h-screen bg-[#0B0F19] font-sans">
       <Header
         missionDay={crewState?.mission_elapsed_day ?? 142}
         fleetStatus={crewState?.fleet_status ?? 'GREEN'}
@@ -79,35 +68,36 @@ export default function MissionControlDashboard() {
         autonomousMode={crewState?.autonomous_mode ?? true}
       />
 
-      <main className="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
-        {/* Emergency scenario switcher */}
+      <main className="max-w-[1600px] mx-auto px-4 py-6 space-y-8">
+        {/* Emergency scenario pill-switcher */}
         <EmergencySimulator
           activeScenario={activeScenario}
           onScenario={handleScenario}
         />
 
-        {/* Loading / Error state */}
+        {/* Loading / error state */}
         {loading && (
-          <div className="flex items-center justify-center h-48 text-sky-400 font-mono text-xs">
-            <span className="animate-pulse">⬡ Establishing NASA bio-telemetry uplink...</span>
+          <div className="flex items-center justify-center h-48 text-[#00F0FF] font-mono text-sm">
+            <span className="animate-pulse">⬡ Establishing bio-telemetry uplink...</span>
           </div>
         )}
 
         {error && !loading && (
-          <div className="p-4 rounded-lg bg-red-950/30 border border-red-500/40 text-red-300 text-xs font-mono">
-            ⚠ Backend connection error: {error}. Ensure FastAPI is running on {API}
+          <div className="mission-card border-[#EF4444] text-[#EF4444] text-sm font-mono">
+            ⚠ Backend connection error: {error}.
+            Ensure the FastAPI server is running on {API}
           </div>
         )}
 
         {crewState && (
           <>
-            {/* 4-Crew Digital Twin Cards */}
+            {/* 4-crew digital twin cards */}
             <CrewMatrix crew={crewState.crew} apiBase={API} />
 
             {/* 24-hr multi-stream telemetry charts */}
             <TelemetryCharts crew={crewState.crew} />
 
-            {/* IBM Granite AI Flight Surgeon Terminal */}
+            {/* IBM Granite AI Flight Surgeon terminal */}
             <FlightSurgeonAI
               crewState={crewState}
               activeScenario={activeScenario}
@@ -118,8 +108,9 @@ export default function MissionControlDashboard() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#141E33] mt-12 py-4 text-center text-[11px] text-slate-500 font-mono">
-        AegisCrew AI · IBM Bob AI Builders Challenge (August 2026) · IBM watsonx.ai &amp; Granite 3.0 · NASA-STD-3001
+      <footer className="border-t border-[#1F2D45] mt-12 py-4 text-center text-xs text-[#6B7280]">
+        AegisCrew AI · IBM Bob AI Builders Challenge 2026 · Powered by IBM watsonx.ai &amp; Granite 3.0
+        · NASA-STD-3001 · NASA SP-2010-3407
       </footer>
     </div>
   )

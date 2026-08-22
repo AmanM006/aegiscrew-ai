@@ -104,12 +104,30 @@ def _mock_briefing(crew_state: CrewStateResponse) -> str:
     for astro in crew_state.crew:
         p = astro.profile
         r = astro.risk
+        ml_note = f" · ML {r.confidence}" if r.confidence and r.confidence != "threshold-only mode" else ""
         crew_lines.append(
-            f"  • {p.name} ({p.id}): Readiness {r.mission_readiness_score:.0f}% [{r.status}] — "
-            f"Fatigue {r.fatigue_risk_score:.0f} | Cardio {r.cardiovascular_risk_score:.0f} | "
-            f"Rad {r.radiation_risk_score:.0f}"
+            f"  • {p.name} ({p.id}): Readiness {r.mission_readiness_score:.0f}% [{r.status}]{ml_note} — "
+            f"FAT {r.fatigue_risk_score:.0f} | CVX {r.cardiovascular_risk_score:.0f} | "
+            f"RAD {r.radiation_risk_score:.0f} | ML {r.ml_anomaly_score:.0f}"
         )
     crew_summary = "\n".join(crew_lines)
+
+    # Systems-level alert block
+    systems_block = ""
+    if crew_state.crew_wide_alert:
+        cwa = crew_state.crew_wide_alert
+        systems_block = f"""
+╔══════════════════════════════════════════════════════════════╗
+║  ⚠ SYSTEMS-LEVEL [{cwa.severity}] — {cwa.pattern_type} ROOT CAUSE IDENTIFIED   ║
+╚══════════════════════════════════════════════════════════════╝
+  Affected Crew : {', '.join(cwa.affected_names or cwa.affected_crew)}
+  Shared Signal : {', '.join(cwa.shared_features)}
+  Root Cause    : {cwa.likely_root_cause}
+  Action        : {cwa.recommendation}
+
+  ▶ This is NOT an isolated individual health event.
+    Anomalies across multiple crew members share a common environmental trigger.
+"""
 
     critical = [
         a for astro in crew_state.crew
@@ -126,8 +144,8 @@ Mission: {crew_state.mission_name}
 MET Day: {crew_state.mission_elapsed_day} | Comms: {crew_state.comms_delay_seconds:.0f}s delay
 Autonomous AI Mode: {'ACTIVE' if crew_state.autonomous_mode else 'STANDBY'}
 Fleet Readiness: {crew_state.fleet_readiness:.1f}% [{crew_state.fleet_status}]
-
-CREW MISSION READINESS SUMMARY:
+{systems_block}
+CREW MISSION READINESS SUMMARY (Hybrid Rule+ML Scoring):
 {crew_summary}
 
 ACTIVE CLINICAL ALERTS:
@@ -135,9 +153,10 @@ ACTIVE CLINICAL ALERTS:
 
 FLIGHT SURGEON DIRECTIVE:
 All crew health parameters are under continuous autonomous monitoring. IBM Granite 3.0
-AI Medical Officer is processing bio-telemetry streams and cross-referencing NASA-STD-3001
-clinical thresholds. Countermeasures have been auto-prescribed for flagged anomalies.
-No ground flight surgeon uplink required for current operational cycle.
+AI Medical Officer is processing bio-telemetry streams using hybrid rule-based + IsolationForest
+ML anomaly detection (trained on 1,440 NASA OSDR historical samples). Cross-crew correlation
+engine is monitoring for shared environmental root causes. No ground flight surgeon uplink
+required for current operational cycle.
 
 [IBM Granite 3-8B-Instruct | AegisCrew AI | NASA SP-2010-3407 | Mock Mode — Set WATSONX_API_KEY for live inference]"""
 
@@ -204,9 +223,11 @@ def generate_executive_briefing(crew_state: CrewStateResponse) -> AgentBriefingR
     crew_status_lines = []
     for astro in crew_state.crew:
         all_anomalies.extend(astro.risk.anomalies)
+        ml_conf = astro.risk.confidence if astro.risk.confidence else "—"
         crew_status_lines.append(
             f"{astro.profile.id} ({astro.profile.name}): "
-            f"Readiness={astro.risk.mission_readiness_score:.1f}% [{astro.risk.status}], "
+            f"Readiness={astro.risk.mission_readiness_score:.1f}% [{astro.risk.status}] "
+            f"[ML: {ml_conf}], "
             f"HR={astro.latest_frame.vitals.heart_rate_bpm:.0f} bpm, "
             f"HRV={astro.latest_frame.vitals.hrv_rmssd_ms:.0f} ms, "
             f"SpO2={astro.latest_frame.vitals.spo2_percent:.1f}%, "
@@ -215,12 +236,33 @@ def generate_executive_briefing(crew_state: CrewStateResponse) -> AgentBriefingR
             f"Rad={astro.latest_frame.radiation.daily_radiation_mgy:.2f} mGy/day"
         )
 
+    # Systems alert section
+    systems_alert_text = ""
+    if crew_state.crew_wide_alert:
+        cwa = crew_state.crew_wide_alert
+        systems_alert_text = (
+            f"\n⚠ SYSTEMS-LEVEL ALERT [{cwa.severity}] — {cwa.pattern_type} PATTERN DETECTED\n"
+            f"  Affected Crew: {', '.join(cwa.affected_names or cwa.affected_crew)}\n"
+            f"  Shared Anomalies: {', '.join(cwa.shared_features)}\n"
+            f"  Root Cause Analysis: {cwa.likely_root_cause}\n"
+            f"  Recommended Action: {cwa.recommendation}\n"
+        )
+
     rag_ctx = build_rag_context(all_anomalies, "\n".join(crew_status_lines))
     anomaly_summary = format_anomaly_summary(all_anomalies)
 
-    prompt = f"""You are the autonomous AegisCrew AI Flight Surgeon.
-Generate a professional daily executive briefing for Mission Commander Elena Vance.
+    # Reframe prompt tone based on systems alert presence
+    briefing_instruction = (
+        "SYSTEMS ALERT MODE: Lead with the systemic fleet-wide root cause before discussing "
+        "individual crew members. Reframe individual anomalies as symptoms of the shared "
+        "environmental root cause, not isolated health events."
+        if crew_state.crew_wide_alert else
+        "Generate a professional daily executive briefing for Mission Commander Elena Vance."
+    )
 
+    prompt = f"""You are the autonomous AegisCrew AI Flight Surgeon.
+{briefing_instruction}
+{systems_alert_text}
 {rag_ctx}
 
 {anomaly_summary}

@@ -1,35 +1,39 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
-export default function SmoothScroll({ children }: { children: React.ReactNode }) {
+interface Props {
+  children: React.ReactNode
+}
+
+export default function SmoothScroll({ children }: Props) {
+  const lenisRef = useRef<{ destroy: () => void } | null>(null)
+
   useEffect(() => {
-    let lenis: any = null
-    const initLenis = async () => {
-      try {
-        const Lenis = (await import('lenis')).default
-        lenis = new Lenis({
-          duration: 1.2,
-          easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-          smoothWheel: true,
-          touchMultiplier: 2,
-        })
+    let raf: number
 
-        function raf(time: number) {
-          lenis.raf(time)
-          requestAnimationFrame(raf)
-        }
+    // Dynamic import so SSR is never affected
+    import('lenis').then(({ default: Lenis }) => {
+      const lenis = new Lenis({
+        duration: 1.2,
+        easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      })
 
-        requestAnimationFrame(raf)
-      } catch (e) {
-        console.warn('Lenis smooth scroll running in fallback mode', e)
+      lenisRef.current = lenis
+
+      function animate(time: number) {
+        lenis.raf(time)
+        raf = requestAnimationFrame(animate)
       }
-    }
 
-    initLenis()
+      raf = requestAnimationFrame(animate)
+    }).catch(() => {
+      // Lenis unavailable — no smooth scroll, page still works
+    })
 
     return () => {
-      if (lenis) lenis.destroy()
+      cancelAnimationFrame(raf)
+      lenisRef.current?.destroy()
     }
   }, [])
 

@@ -78,15 +78,37 @@ class RiskFactor(BaseModel):
     protocol_id: Optional[str] = None
 
 
+class AnomalyResult(BaseModel):
+    crew_id: str
+    anomaly_score: float
+    is_anomaly: bool
+    contributing_features: List[str] = []
+    confidence_str: str = "threshold-only mode"
+    training_samples: int = 0
+
+
+class CrewPatternAlert(BaseModel):
+    pattern_type: str
+    affected_crew: List[str]
+    affected_names: List[str] = []
+    shared_features: List[str] = []
+    likely_root_cause: str
+    severity: str
+    recommendation: str
+
+
 class RiskAssessment(BaseModel):
     crew_id: str
     timestamp_utc: datetime
     fatigue_risk_score: float          = Field(..., ge=0, le=100)
     cardiovascular_risk_score: float   = Field(..., ge=0, le=100)
     radiation_risk_score: float        = Field(..., ge=0, le=100)
+    ml_anomaly_score: float            = Field(default=0.0, ge=0, le=100)
     mission_readiness_score: float     = Field(..., ge=0, le=100)
     status: Literal["GREEN", "AMBER", "RED"] = "GREEN"
     anomalies: List[RiskFactor] = []
+    ml_result: Optional[AnomalyResult] = None
+    confidence: str = "threshold-only mode"
 
 
 # ---------------------------------------------------------------------------
@@ -141,6 +163,7 @@ class CrewStateResponse(BaseModel):
     fleet_readiness: float       # average readiness across all crew
     fleet_status: Literal["GREEN", "AMBER", "RED"] = "GREEN"
     active_scenario: str = "nominal"
+    crew_wide_alert: Optional[CrewPatternAlert] = None
 
 
 # ---------------------------------------------------------------------------

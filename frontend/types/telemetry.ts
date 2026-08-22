@@ -1,4 +1,4 @@
-// AegisCrew AI — Full TypeScript type definitions
+// AegisCrew AI — Full TypeScript type definitions (v2 — ML + Correlation)
 
 export type TrafficLight = 'GREEN' | 'AMBER' | 'RED'
 export type SPEAlertStatus = 'NOMINAL' | 'WATCH' | 'WARNING' | 'EMERGENCY'
@@ -62,15 +62,39 @@ export interface RiskFactor {
   protocol_id?: string
 }
 
+// IsolationForest ML anomaly result
+export interface AnomalyResult {
+  crew_id: string
+  anomaly_score: number              // 0–100
+  is_anomaly: boolean
+  contributing_features: string[]   // e.g. ["Cabin CO₂ (z=3.2σ)", "Elevated HR (z=2.1σ)"]
+  confidence_str: string            // e.g. "87% confidence · 360 samples"
+  training_samples: number
+}
+
+// Cross-crew systemic pattern detection
+export interface CrewPatternAlert {
+  pattern_type: string              // "ENVIRONMENTAL" | "INDIVIDUAL" | "MIXED"
+  affected_crew: string[]
+  affected_names: string[]
+  shared_features: string[]
+  likely_root_cause: string
+  severity: string                  // "HIGH" | "CRITICAL"
+  recommendation: string
+}
+
 export interface RiskAssessment {
   crew_id: string
   timestamp_utc: string
   fatigue_risk_score: number
   cardiovascular_risk_score: number
   radiation_risk_score: number
+  ml_anomaly_score: number          // IsolationForest ML contribution
   mission_readiness_score: number
   status: TrafficLight
   anomalies: RiskFactor[]
+  ml_result: AnomalyResult | null
+  confidence: string
 }
 
 export interface Countermeasure {
@@ -113,6 +137,7 @@ export interface CrewStateResponse {
   fleet_readiness: number
   fleet_status: TrafficLight
   active_scenario: string
+  crew_wide_alert: CrewPatternAlert | null   // cross-crew correlation result
 }
 
 export interface AgentBriefingResponse {

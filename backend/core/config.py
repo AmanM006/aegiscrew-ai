@@ -11,16 +11,18 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 # Base paths
 # ---------------------------------------------------------------------------
-BACKEND_DIR = Path(__file__).resolve().parent.parent   # aegiscrew-ai/backend/
-REPO_ROOT   = BACKEND_DIR.parent                       # aegiscrew-ai/
+BACKEND_DIR    = Path(__file__).resolve().parent.parent   # aegiscrew-ai/backend/
+REPO_ROOT      = BACKEND_DIR.parent                       # aegiscrew-ai/
+WORKSPACE_ROOT = REPO_ROOT.parent                         # august-ibm/ (workspace root)
 
-# Real NASA data lives in data/ inside repository (or workspace parent)
-if (REPO_ROOT / "data").exists():
-    DATA_DIR = REPO_ROOT / "data"
-elif (WORKSPACE_ROOT / "data").exists():
-    DATA_DIR = WORKSPACE_ROOT / "data"
-else:
-    DATA_DIR = BACKEND_DIR / "data"
+# Real NASA data lives one level above the aegiscrew-ai/ project folder
+def _resolve_data_dir() -> Path:
+    for candidate in (REPO_ROOT / "data", WORKSPACE_ROOT / "data", BACKEND_DIR / "data"):
+        if candidate.exists():
+            return candidate
+    return WORKSPACE_ROOT / "data"   # best-guess default even if absent
+
+DATA_DIR = _resolve_data_dir()
 
 NASA_BIOMETRICS_PATH = DATA_DIR / "nasa_osdr" / "nasa_crew_biometrics_reference.json"
 NASA_PROTOCOLS_PATH  = DATA_DIR / "clinical_protocols" / "nasa_flight_surgeon_protocols.json"

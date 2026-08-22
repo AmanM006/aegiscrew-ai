@@ -120,19 +120,22 @@ Consider the clinical realities:
 IBM Bob was the **primary development environment** for the entire AegisCrew AI project. Specific contributions:
 
 ### 1. Codebase Scaffolding
-Bob generated the complete repository structure from a single architectural description — all 25 backend and frontend files with proper module boundaries, `__init__.py` chains, and Python path resolution.
+Bob generated the complete repository structure from a single architectural description — all 30+ backend and frontend files with proper module boundaries, `__init__.py` chains, and Python path resolution.
 
 ### 2. NASA Tabular Data Modeling
 Bob analyzed the `nasa_iss_timeseries_dataset.csv` schema (1,440 rows × 18 columns) and designed the full Pydantic v2 type hierarchy — `TelemetryFrame`, `AstronautVitals`, `RadiationDosimetry`, `CabinAtmosphere`, `CognitiveAcuity` — ensuring exact field-name alignment with the CSV columns for zero-configuration ingestion.
 
 ### 3. IBM Granite Prompt Engineering
-Bob engineered the multi-modal clinical prompts for Granite 3.0, including the RAG context injection pattern that prepends NASA SP-2010-3407 protocols directly into each inference call, ensuring grounded, protocol-cited clinical outputs.
+Bob engineered the multi-modal clinical prompts for Granite 3.0, including the RAG context injection pattern that prepends NASA SP-2010-3407 protocols directly into each inference call, ensuring grounded, protocol-cited clinical outputs. Also designed the systems-alert briefing mode that reframes fleet-wide anomalies as environmental root-cause events rather than individual health issues.
 
 ### 4. Biomathematical Risk Algorithms
 Bob implemented the three-process fatigue model (Borbély), HRV autonomic tone decay scoring, SPE radiation risk classifier, and the composite Mission Readiness Score formula — all grounded in NASA-STD-3001 threshold values extracted from the real data files.
 
 ### 5. Interactive Troubleshooting & Scenario Simulation
 Bob designed the four-scenario override injection system (`scenario_manager.py`) that plumbs realistic emergency telemetry values through the entire stack — from Pydantic models through the ML engine through Granite agent responses to live UI updates.
+
+### 6. ML Model Integration & Multi-Signal Correlation
+Bob integrated `scikit-learn` IsolationForest anomaly detection trained on historical NASA telemetry, and designed the cross-crew pattern correlation engine (`correlation_engine.py`) that distinguishes individual health issues from shared environmental root causes. This includes the per-feature z-score contributing-factor analysis, confidence string generation, and the architectural decision to weight ML anomaly scores at 40% of the composite readiness metric alongside the 60% rule-based sub-scores.
 
 ---
 
@@ -146,15 +149,18 @@ Bob designed the four-scenario override injection system (`scenario_manager.py`)
 
 ---
 
-## 📖 NASA Data Citations
+## 📖 NASA Data Citations & Provenance
+
+> **Data Transparency Note:** `nasa_iss_timeseries_dataset.csv` is a **synthetic telemetry dataset** generated to model realistic ISS/Mars transit biotelemetry. All physiological values, thresholds, emergency event parameters, and temporal patterns are directly derived from and validated against published NASA-STD-3001 spaceflight human-system standards and peer-reviewed NASA life sciences research. The clinical warning thresholds, countermeasure protocols, and crew baseline values are sourced from authentic NASA publications as cited below. This approach follows NASA OSDR data modeling methodology. The dataset is labeled as "nasa_osdr" to indicate it mirrors the schema and value ranges of NASA Open Science Data Repository biotelemetry, not that it was directly downloaded from OSDR.
 
 | Dataset | Reference | Usage |
 |---|---|---|
-| `nasa_crew_biometrics_reference.json` | **NASA-STD-3001** Rev C — NASA Spaceflight Human-System Standard, Vol 1 & 2 | Baseline vitals, clinical warning thresholds for all 4 crew members |
-| `nasa_flight_surgeon_protocols.json` | **NASA SP-2010-3407** — Human Integration Design Handbook (Flight Surgeon Medical Operations) | 4 countermeasure protocols: phototherapy, CO₂ scrubber override, SPE shelter SOP, cardiovascular fluid loading |
-| `nasa_iss_timeseries_dataset.csv` | **NASA OSDR** — Open Science Data Repository, ISS Life Sciences biotelemetry | 1,440-row 30-day multi-stream telemetry with historical emergency injections (Day 14 SPE, Day 21 CO₂, Day 26 Commander sleep debt) |
+| `nasa_crew_biometrics_reference.json` | **NASA-STD-3001** Rev C — NASA Spaceflight Human-System Standard, Vol 1 & 2 | Authentic NASA standard: baseline vitals, clinical warning thresholds for all 4 crew members |
+| `nasa_flight_surgeon_protocols.json` | **NASA SP-2010-3407** — Human Integration Design Handbook (Flight Surgeon Medical Operations) | Authentic NASA publication: 4 countermeasure protocols — phototherapy, CO₂ scrubber override, SPE shelter SOP, cardiovascular fluid loading |
+| `nasa_iss_timeseries_dataset.csv` | Synthetic telemetry modeled on **NASA-STD-3001** thresholds + published NASA sleep/circadian/radiation studies | 1,440-row 30-day multi-stream biotelemetry; value ranges, emergency event timing, and physiological response patterns derived from NASA life sciences literature |
 | Radiation model | **NASA NSCR-2020** — Space Radiation Cancer Risk Model | Career dose limits, SPE classification thresholds |
-| HRV research | Hughson et al., J. Appl. Physiol 2016; Flynn-Evans et al., npj Microgravity 2021 | HRV RMSSD autonomic decay scoring |
+| Circadian/Sleep | Flynn-Evans et al., *npj Microgravity* 2021; NASA HRP sleep guidelines | Sleep debt thresholds, PVT degradation curves, phototherapy protocols |
+| Cardiovascular | Hughson et al., *J. Appl. Physiol* 2016; NASA LSDA Cardiovascular Archives | HRV RMSSD autonomic decay scoring, microgravity deconditioning parameters |
 
 ---
 
