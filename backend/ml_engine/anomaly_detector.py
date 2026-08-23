@@ -119,7 +119,12 @@ def fit_models() -> None:
 
         means = X.mean(axis=0)
         stds  = X.std(axis=0)
-        stds[stds == 0] = 1.0   # avoid division by zero for constant features
+        # Floor std to 1% of mean (or 0.01 absolute min) so near-constant features
+        # (e.g. radiation during nominal periods) don't produce astronomically large
+        # z-scores via division-by-near-zero.  Without this floor, z=631σ is possible.
+        stds = np.where(stds < 1e-6, 1.0, stds)          # hard floor: true-zero → 1.0
+        min_std = np.maximum(np.abs(means) * 0.01, 0.01)  # 1% of mean or 0.01
+        stds = np.maximum(stds, min_std)
 
         clf = IsolationForest(
             n_estimators=100,
@@ -173,15 +178,27 @@ def detect_anomaly(crew_id: str, frame: TelemetryFrame) -> AnomalyResult:
 
     is_anomaly = bool(model_data.model.predict(vec)[0] == -1)
 
-    # Per-feature z-scores → top deviating features
-    z_scores = np.abs((vec[0] - model_data.feature_means) / model_data.feature_stds)
+    # Per-feature z-scores → top deviating features.
+    # Apply same std floor used at training time to prevent division-by-near-zero blowup.
+    stds_floored = np.where(model_data.feature_stds < 1e-6, 1.0, model_data.feature_stds)
+    min_std = np.maximum(np.abs(model_data.feature_means) * 0.01, 0.01)
+    stds_floored = np.maximum(stds_floored, min_std)
+
+    z_scores_raw = np.abs((vec[0] - model_data.feature_means) / stds_floored)
+    # Clamp display z-scores to ±12σ — anything beyond is "extreme" and statistically
+    # indistinguishable from a hard anomaly; raw 600σ values are display artifacts, not info.
+    Z_MAX = 12.0
+    z_scores = np.minimum(z_scores_raw, Z_MAX)
+
     top_indices = np.argsort(z_scores)[::-1][:3]
     contributing = []
     for idx in top_indices:
         if idx < len(FEATURE_COLS) and z_scores[idx] > 1.5:
             col_name = FEATURE_COLS[idx]
             label = FEATURE_LABELS.get(col_name, col_name)
-            contributing.append(f"{label} (z={z_scores[idx]:.1f}σ)")
+            z_val = z_scores[idx]
+            z_str = f">12σ (extreme)" if z_val >= Z_MAX else f"z={z_val:.1f}σ"
+            contributing.append(f"{label} ({z_str})")
 
     # Confidence: based on training sample count and distance from training distribution
     # Closer to decision boundary = lower confidence in flag

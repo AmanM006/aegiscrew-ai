@@ -172,10 +172,15 @@ export default function AstronautCard({ astro, prescribing, prescriptionText, on
               </div>
             </div>
             {/* Confidence interpretation — turns low nominal scores into a feature */}
-            {!isMLAnomaly && (
+            {!isMLAnomaly ? (
               <div className="px-2 pb-1.5 text-[8px] font-mono text-slate-600 leading-tight">
-                Low deviation from baseline → high model confidence in nominal state.
+                Low deviation from baseline &rarr; high model confidence in nominal state.
                 Confidence rises sharply when anomaly patterns emerge.
+              </div>
+            ) : (
+              <div className="px-2 pb-1.5 text-[8px] font-mono leading-tight" style={{ color: 'rgba(239,68,68,0.55)' }}>
+                Confidence moderate — anomaly signal clear, but limited historical anomaly
+                samples available for precise calibration (rare events by design).
               </div>
             )}
           </div>

@@ -7,9 +7,11 @@ import type {
 } from '@/types/telemetry'
 import {
   BrainCircuit, RefreshCw, Send, CheckCircle2,
-  MessageSquare, FileText, AlertTriangle, Link2,
+  MessageSquare, FileText, AlertTriangle, Link2, Archive,
 } from 'lucide-react'
 import DecisionTimer from './DecisionTimer'
+import AuditLogPanel from './AuditLogPanel'
+import VoiceInterface from './VoiceInterface'
 
 interface Props {
   crewState: CrewStateResponse
@@ -379,7 +381,8 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, co
   }])
   const [chatInput, setChatInput]   = useState('')
   const [chatLoading, setCL]        = useState(false)
-  const [tab, setTab]               = useState<'briefing' | 'countermeasures' | 'chain' | 'chat'>('briefing')
+  const [tab, setTab]               = useState<'briefing' | 'countermeasures' | 'chain' | 'chat' | 'audit'>('briefing')
+  const [speakReply, setSpeakReply]   = useState<string>('')
 
   // Track previous RED crew for sound cue
   const prevRedCrew = useRef<Set<string>>(new Set())
@@ -397,18 +400,35 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, co
 
   const fetchBriefing = useCallback(async () => {
     setBL(true)
+    // Client-side safety net: if backend doesn't respond within 20s, show fallback text.
+    // The backend itself has a 12s Granite timeout, so this covers network overhead too.
+    const abort = new AbortController()
+    const clientTimeout = setTimeout(() => abort.abort(), 20_000)
     try {
       const res = await fetch(`${apiBase}/api/agent/briefing`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mission_elapsed_day: crewState.mission_elapsed_day, active_scenario: activeScenario }),
+        signal: abort.signal,
       })
       const data: AgentBriefingResponse = await res.json()
       setBriefing(data)
       setBriefingTs(Date.now())
-    } catch (e) {
-      console.error('Briefing error', e)
+    } catch (e: unknown) {
+      if ((e as Error)?.name === 'AbortError') {
+        // Timeout: show a graceful fallback so the panel never hangs indefinitely
+        setBriefing({
+          briefing: '⚠ Live model unreachable — showing cached analysis.\n\nFleet under autonomous medical supervision. Use "Refresh" to retry when connectivity restores.',
+          generated_at: new Date().toISOString(),
+          model_used: 'cached-fallback',
+          mock_mode: true,
+        } as AgentBriefingResponse)
+        setBriefingTs(Date.now())
+      } else {
+        console.error('Briefing error', e)
+      }
     } finally {
+      clearTimeout(clientTimeout)
       setBL(false)
     }
   }, [apiBase, crewState.mission_elapsed_day, activeScenario])
@@ -437,6 +457,8 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, co
       })
       const data: AgentChatResponse = await res.json()
       setChatMessages((prev) => [...prev, { role: 'assistant', content: data.reply }])
+      // Auto-speak the first 200 chars of the response via TTS
+      setSpeakReply(data.reply.slice(0, 200))
     } catch {
       setChatMessages((prev) => [...prev, { role: 'assistant', content: '⚠ Communication error.' }])
     } finally {
@@ -445,7 +467,12 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, co
   }
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [chatMessages])
-  useEffect(() => { fetchBriefing() }, [activeScenario]) // eslint-disable-line
+  useEffect(() => {
+    // Reset decision timer immediately when scenario changes so the countdown
+    // starts fresh — not after the briefing resolves (which could take up to 12s).
+    setBriefingTs(Date.now())
+    fetchBriefing()
+  }, [activeScenario]) // eslint-disable-line
 
   return (
     <section className="space-y-3">
@@ -496,6 +523,7 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, co
               { id: 'countermeasures', label: `Active Protocols (${allCountermeasures.length})`, icon: AlertTriangle },
               { id: 'chain',           label: 'AI Explainability', icon: Link2 },
               { id: 'chat',            label: 'Surgeon Chat', icon: MessageSquare },
+              { id: 'audit',           label: 'Audit Log', icon: Archive },
             ].map((t) => {
               const Icon = t.icon
               const isActive = tab === t.id
@@ -523,14 +551,52 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, co
 
         {/* TAB: Executive Briefing */}
         {tab === 'briefing' && (
-          <div className="p-3.5 rounded bg-[#080D1A] border border-[#162033] text-xs font-mono leading-relaxed text-slate-300 whitespace-pre-wrap max-h-[420px] overflow-y-auto">
-            {briefingLoading ? (
-              <div className="flex items-center gap-1.5 text-sky-400">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>IBM Granite 4 synthesizing clinical briefing...</span>
-              </div>
-            ) : (
-              briefing?.briefing || 'Click "Refresh" to generate the daily executive situation report.'
+          <div className="space-y-2">
+            <div className="p-3.5 rounded bg-[#080D1A] border border-[#162033] text-xs font-mono leading-relaxed text-slate-300 whitespace-pre-wrap max-h-[420px] overflow-y-auto">
+              {briefingLoading ? (
+                <div className="flex items-center gap-1.5 text-sky-400">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>IBM Granite 4 synthesizing clinical briefing...</span>
+                </div>
+              ) : (
+                briefing?.briefing || 'Click "Refresh" to generate the daily executive situation report.'
+              )}
+            </div>
+            {/* Download Report button — always shown after first briefing load */}
+            {briefing && !briefingLoading && (
+              <button
+                onClick={() => {
+                  const content = briefing.briefing
+                  const ts = new Date().toISOString()
+                  const model = briefing.model_used
+                  const html = [
+                    '<!DOCTYPE html><html><head>',
+                    '<title>AegisCrew AI — Flight Surgeon Report</title>',
+                    '<style>',
+                    'body{font-family:monospace;font-size:12px;padding:24px;color:#000;max-width:900px;margin:0 auto}',
+                    'pre{white-space:pre-wrap;word-break:break-word}',
+                    'h1{font-size:14px;border-bottom:1px solid #000;padding-bottom:6px;margin-bottom:12px}',
+                    'footer{margin-top:24px;font-size:10px;color:#666;border-top:1px solid #ccc;padding-top:8px}',
+                    '</style></head><body>',
+                    '<h1>AegisCrew AI &#8212; Official Flight Surgeon Report</h1>',
+                    `<p style="font-size:10px;color:#666">Generated: ${ts} | Mission: Artemis Mars Transit | Model: ${model}</p>`,
+                    `<pre>${content.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`,
+                    '<footer>AegisCrew AI &middot; IBM watsonx.ai Granite 4 &middot; NASA-STD-3001 &middot; NASA SP-2010-3407 &middot; NASA NSCR-2020</footer>',
+                    '</body></html>',
+                  ].join('\n')
+                  const blob = new Blob([html], { type: 'text/html' })
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url
+                  a.download = `aegiscrew-flight-surgeon-report-${Date.now()}.html`
+                  a.click()
+                  URL.revokeObjectURL(url)
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-[#080D1A] border border-[#162033] hover:border-sky-500/40 text-[9px] font-mono text-slate-400 hover:text-sky-300 transition w-fit"
+              >
+                <span>📄</span>
+                <span>Download Flight Surgeon Report</span>
+              </button>
             )}
           </div>
         )}
@@ -553,6 +619,11 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, co
         {/* TAB: AI Explainability Chain */}
         {tab === 'chain' && (
           <ExplainabilityChainTab crewState={crewState} />
+        )}
+
+        {/* TAB: Mission Decision Audit Log */}
+        {tab === 'audit' && (
+          <AuditLogPanel apiBase={apiBase} />
         )}
 
         {/* TAB: Chat */}
@@ -604,8 +675,14 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, co
               <input
                 type="text" value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Ask AI Medical Officer (e.g. 'Explain why Mark Jensen was flagged for EVA hold')..."
+                placeholder="Ask AI Medical Officer — or hold the mic to speak..."
                 className="flex-1 bg-[#080D1A] border border-[#162033] focus:border-sky-500 text-white text-xs font-mono rounded px-3 py-2 outline-none"
+              />
+              {/* Voice input — hold to speak, releases to send */}
+              <VoiceInterface
+                onTranscript={(text) => { setChatInput(text) }}
+                speakText={speakReply || undefined}
+                disabled={chatLoading}
               />
               <button type="submit" disabled={chatLoading || !chatInput.trim()}
                 className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-mono text-xs rounded flex items-center gap-1.5 transition disabled:opacity-40">

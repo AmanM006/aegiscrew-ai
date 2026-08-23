@@ -188,3 +188,18 @@ export interface AgentChatResponse {
 export interface ScenarioDescription {
   [key: string]: string
 }
+
+// Mission Decision Audit Log (NASA-HDBK-2203 flight-data-recorder pattern)
+export interface AuditEntry {
+  timestamp: string
+  event_type: string
+  astronaut_id: string
+  summary: string
+  data_snapshot: Record<string, unknown>
+  sequence: number
+}
+
+export interface AuditLogResponse {
+  entries: AuditEntry[]
+  total_logged: number
+}

@@ -7,6 +7,8 @@ import EmergencySimulator from '@/components/EmergencySimulator'
 import CrewMatrix from '@/components/CrewMatrix'
 import TelemetryCharts from '@/components/TelemetryCharts'
 import FlightSurgeonAI from '@/components/FlightSurgeonAI'
+import ComparisonMode from '@/components/ComparisonMode'
+import LiveSpaceData from '@/components/LiveSpaceData'
 import type { CrewStateResponse } from '@/types/telemetry'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -93,6 +95,12 @@ export default function MissionControlPage() {
           <>
             {/* 4-crew digital twin cards */}
             <CrewMatrix crew={crewState.crew} apiBase={API} />
+
+            {/* AI ON vs AI OFF comparison panel */}
+            <ComparisonMode crew={crewState.crew} />
+
+            {/* Real NASA + NOAA live data feeds */}
+            <LiveSpaceData />
 
             {/* 24-hr multi-stream telemetry charts */}
             <TelemetryCharts crew={crewState.crew} />

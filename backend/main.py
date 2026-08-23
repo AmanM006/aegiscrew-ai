@@ -18,6 +18,7 @@ from backend.core.config import (
     MISSION_NAME,
     WATSONX_MOCK_MODE,
 )
+from backend.core.audit_log import audit_log, EVENT_CREW_WIDE_ALERT
 from backend.core.telemetry_schema import (
     AgentBriefingRequest,
     AgentBriefingResponse,
@@ -186,6 +187,23 @@ def _build_crew_state(scenario: str = "nominal") -> CrewStateResponse:
                 severity=pattern.severity,
                 recommendation=pattern.recommendation,
             )
+            # Log crew-wide alert to audit trail (each build_crew_state call may fire this;
+            # the audit log captures them for post-mission review)
+            audit_log.append(
+                event_type=EVENT_CREW_WIDE_ALERT,
+                astronaut_id="FLEET",
+                summary=(
+                    f"Crew-wide {pattern.severity} [{pattern.pattern_type}] — "
+                    f"Affected: {', '.join(pattern.affected_names or pattern.affected_crew)} — "
+                    f"{', '.join(pattern.shared_features)}"
+                ),
+                data_snapshot={
+                    "pattern_type": pattern.pattern_type,
+                    "severity": pattern.severity,
+                    "affected_crew": pattern.affected_crew,
+                    "shared_features": pattern.shared_features,
+                },
+            )
     except Exception as exc:
         logger.warning("Correlation engine error (non-fatal): %s", exc)
 
@@ -302,6 +320,29 @@ def agent_chat(req: AgentChatRequest):
     crew_state = _build_crew_state(get_active_scenario())
     history = [{"role": t.role, "content": t.content} for t in req.history] if req.history else None
     return chat_flight_surgeon(req.user_message, crew_state, req.active_scenario, history)
+
+
+@app.get("/api/audit/log", tags=["audit"])
+def get_audit_log(limit: int = 50):
+    """
+    Return the most recent autonomous AI decisions in reverse-chronological order.
+    Models the Mission Decision Audit Log (aerospace black-box recorder requirement).
+    See NASA-HDBK-2203: auditable decision trails for human-rated autonomous systems.
+    """
+    return {
+        "entries": audit_log.get_recent(min(limit, 200)),
+        "total_logged": len(audit_log.get_all()),
+    }
+
+
+@app.get("/api/audit/export", tags=["audit"])
+def export_audit_log():
+    """Export the complete audit log as JSON (all entries, oldest first)."""
+    return {
+        "mission": MISSION_NAME,
+        "exported_at": __import__("datetime").datetime.utcnow().isoformat() + "Z",
+        "entries": audit_log.get_all(),
+    }
 
 
 @app.get("/api/debug/correlation", tags=["debug"])

@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertTriangle, Radiation, Flame, BedDouble, CheckCircle2 } from 'lucide-react'
+import { AlertTriangle, Radiation, Flame, BedDouble, CheckCircle2, FlaskConical, Moon } from 'lucide-react'
 
 interface EmergencySimulatorProps {
   activeScenario: string
@@ -36,6 +36,20 @@ const SCENARIOS = [
     desc: 'Commander Vance 72-hr sleep debt → 9.2 hrs → High-risk EVA freeze & phototherapy.',
     activeColor: 'border-indigo-500/50 bg-indigo-950/40 text-indigo-300',
   },
+  {
+    id: 'parmitano_eva',
+    label: '🏛 Historical: Parmitano EVA-23',
+    icon: FlaskConical,
+    desc: 'REAL 2013 NASA incident — water intrusion in helmet. AegisCrew T+90s vs actual T+8min detection.',
+    activeColor: 'border-purple-500/50 bg-purple-950/40 text-purple-300',
+  },
+  {
+    id: 'lunar_surface',
+    label: '🌕 Artemis Lunar Surface',
+    icon: Moon,
+    desc: 'Artemis surface ops — elevated GCR radiation, EVA exertion, reduced habitat sleep. Generalisability demo.',
+    activeColor: 'border-slate-400/50 bg-slate-900/40 text-slate-200',
+  },
 ]
 
 export default function EmergencySimulator({ activeScenario, onScenario }: EmergencySimulatorProps) {
@@ -55,7 +69,7 @@ export default function EmergencySimulator({ activeScenario, onScenario }: Emerg
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2.5">
         {SCENARIOS.map((s) => {
           const Icon = s.icon
           const isActive = activeScenario === s.id

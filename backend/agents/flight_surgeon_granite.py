@@ -6,6 +6,8 @@ responses when credentials are absent (demo / offline mode).
 from __future__ import annotations
 
 import json
+import threading
+
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -22,6 +24,12 @@ from backend.core.telemetry_schema import (
     RiskFactor,
 )
 from backend.agents.clinical_rag import build_rag_context, format_anomaly_summary
+from backend.core.audit_log import (
+    audit_log,
+    EVENT_BRIEFING_GENERATED,
+    EVENT_COUNTERMEASURE,
+    EVENT_TIMEOUT_FALLBACK,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -74,25 +82,62 @@ _SYSTEM_PROMPT = (
 )
 
 
+# Hard timeout for each Granite API call (seconds).  Prevents the briefing
+# from hanging indefinitely when watsonx is slow or network-congested.
+_GRANITE_TIMEOUT_S = 12
+
+
 def _call_granite(prompt: str) -> tuple[str, bool]:
     """
     Send prompt to IBM Granite via the chat API (non-deprecated).
     Returns (response_text, mock_mode_bool).
+
+    Wraps the synchronous SDK call in a daemon thread with a hard timeout
+    so the frontend always resolves within ~12s even if watsonx is slow.
+    On timeout, logs the event and returns (None, True) to trigger mock fallback.
     """
     model = _get_watsonx_model()
     if model is None:
         return None, True   # signal mock fallback
-    try:
-        messages = [
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user",   "content": prompt},
-        ]
-        result = model.chat(messages=messages, params={"max_tokens": 800, "temperature": 0.2})
-        text = result["choices"][0]["message"]["content"]
-        return text, False
-    except Exception as exc:
-        logger.error("Granite chat API error: %s", exc)
+
+    result_container: list = [None]
+    error_container: list = [None]
+
+    def _do_call():
+        try:
+            messages = [
+                {"role": "system", "content": _SYSTEM_PROMPT},
+                {"role": "user",   "content": prompt},
+            ]
+            res = model.chat(messages=messages, params={"max_tokens": 800, "temperature": 0.2})
+            result_container[0] = res["choices"][0]["message"]["content"]
+        except Exception as exc:
+            error_container[0] = exc
+
+    t = threading.Thread(target=_do_call, daemon=True)
+    t.start()
+    t.join(timeout=_GRANITE_TIMEOUT_S)
+
+    if t.is_alive():
+        # Thread still blocked after timeout — fall back to mock immediately
+        logger.warning(
+            "TIMEOUT: Granite API call exceeded %ss — falling back to mock briefing "
+            "(watsonx may be slow; background thread discarded).",
+            _GRANITE_TIMEOUT_S,
+        )
+        audit_log.append(
+            event_type=EVENT_TIMEOUT_FALLBACK,
+            astronaut_id="FLEET",
+            summary=f"Granite API timed out after {_GRANITE_TIMEOUT_S}s — serving cached mock briefing",
+            data_snapshot={"timeout_s": _GRANITE_TIMEOUT_S},
+        )
         return None, True
+
+    if error_container[0] is not None:
+        logger.error("Granite chat API error: %s", error_container[0])
+        return None, True
+
+    return result_container[0], False
 
 
 # ---------------------------------------------------------------------------
@@ -210,13 +255,130 @@ query individual crew risk assessments via /api/crew/status.
 
 
 # ---------------------------------------------------------------------------
+# Multi-agent specialist architecture
+# Radiation, Cardio, and Circadian specialist agents run in parallel; their
+# outputs are synthesized by the Orchestrator agent into the final briefing.
+# This mirrors the agentic AI pattern: domain specialists → supervisor synthesis.
+# ---------------------------------------------------------------------------
+
+_SPECIALIST_PROMPTS = {
+    "radiation": (
+        "You are the AegisCrew Radiation Specialist. Analyze ONLY radiation dosimetry data. "
+        "Summarise in 3 concise bullets: current dose rate, cumulative risk, and recommended action. "
+        "Reference NASA NSCR-2020 / Cucinotta protocols. Be terse."
+    ),
+    "cardio": (
+        "You are the AegisCrew Cardiovascular Specialist. Analyze ONLY heart rate, HRV, SpO2, and blood pressure data. "
+        "Summarise in 3 concise bullets: autonomic status, cardiovascular risk flag, and recommended action. "
+        "Reference NASA-STD-3001 cardiovascular thresholds. Be terse."
+    ),
+    "circadian": (
+        "You are the AegisCrew Circadian/Sleep Specialist. Analyze ONLY sleep debt, PVT reaction time, and circadian data. "
+        "Summarise in 3 concise bullets: cognitive readiness, fatigue risk, and recommended action. "
+        "Reference NASA SP-2010-3407 sleep/cognitive standards. Be terse."
+    ),
+}
+
+
+def _call_specialist(specialist_role: str, crew_data_text: str) -> str | None:
+    """
+    Run a single specialist agent call with a focused domain prompt.
+    Returns text or None on failure/timeout (orchestrator handles gracefully).
+    """
+    model = _get_watsonx_model()
+    if model is None:
+        return None
+
+    system = _SPECIALIST_PROMPTS[specialist_role]
+    result_container: list = [None]
+    error_container: list = [None]
+
+    def _do_call():
+        try:
+            res = model.chat(
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user",   "content": crew_data_text},
+                ],
+                params={"max_tokens": 250, "temperature": 0.15},
+            )
+            result_container[0] = res["choices"][0]["message"]["content"]
+        except Exception as exc:
+            error_container[0] = exc
+
+    t = threading.Thread(target=_do_call, daemon=True)
+    t.start()
+    t.join(timeout=_GRANITE_TIMEOUT_S)
+
+    if t.is_alive() or error_container[0] is not None:
+        return None
+
+    return result_container[0]
+
+
+def _run_specialist_agents(crew_state: CrewStateResponse) -> dict[str, str] | None:
+    """
+    Run 3 specialist agents in parallel threads and return {role: analysis} dict.
+    Falls back to None if live Granite is unavailable (triggers standard mock briefing).
+    Only used when Granite is live (not in mock mode).
+    """
+    if _get_watsonx_model() is None:
+        return None
+
+    # Build focused data summary for each specialist
+    crew_lines = []
+    for a in crew_state.crew:
+        f = a.latest_frame
+        crew_lines.append(
+            f"{a.profile.id} ({a.profile.name}) — "
+            f"HR={f.vitals.heart_rate_bpm:.0f}bpm HRV={f.vitals.hrv_rmssd_ms:.0f}ms "
+            f"SpO2={f.vitals.spo2_percent:.1f}% "
+            f"Rad={f.radiation.daily_radiation_mgy:.2f}mGy/d SPE={f.radiation.spe_alert_status} "
+            f"CO2={f.atmosphere.cabin_co2_ppm:.0f}ppm "
+            f"SleepDebt={f.circadian.sleep_debt_72h_hrs:.1f}h "
+            f"PVT={f.circadian.pvt_reaction_time_ms:.0f}ms "
+            f"Readiness={a.risk.mission_readiness_score:.1f}%"
+        )
+    crew_data = "\n".join(crew_lines)
+
+    specialists = {}
+    threads: dict[str, threading.Thread] = {}
+    results: dict[str, list] = {r: [None] for r in _SPECIALIST_PROMPTS}
+
+    def _run(role: str):
+        results[role][0] = _call_specialist(role, crew_data)
+
+    for role in _SPECIALIST_PROMPTS:
+        t = threading.Thread(target=_run, args=(role,), daemon=True)
+        t.start()
+        threads[role] = t
+
+    for role, t in threads.items():
+        t.join(timeout=_GRANITE_TIMEOUT_S)
+        if results[role][0]:
+            specialists[role] = results[role][0]
+
+    if not specialists:
+        return None   # all specialists failed — fall back to single-call mode
+
+    logger.info(
+        "Multi-agent specialists completed: %s / %d domain analyses",
+        list(specialists.keys()), len(_SPECIALIST_PROMPTS),
+    )
+    return specialists
+
+
+# ---------------------------------------------------------------------------
 # Public API functions
 # ---------------------------------------------------------------------------
 
 def generate_executive_briefing(crew_state: CrewStateResponse) -> AgentBriefingResponse:
     """
     Generate a daily executive briefing for the Mission Commander.
-    Attempts IBM Granite 4; falls back to structured mock.
+    Uses multi-agent specialist architecture when live Granite is available:
+      Radiation Specialist → Cardio Specialist → Circadian Specialist (parallel)
+      → Orchestrator Agent synthesizes final briefing from specialist inputs.
+    Falls back to single-call mode if specialists fail, then mock if all Granite fails.
     """
     # Build RAG context from all active anomalies
     all_anomalies: List[RiskFactor] = []
@@ -283,11 +445,28 @@ def generate_executive_briefing(crew_state: CrewStateResponse) -> AgentBriefingR
     else:
         briefing_instruction = "Generate a professional daily executive briefing for Mission Commander Elena Vance."
 
-    prompt = f"""You are the autonomous AegisCrew AI Flight Surgeon.
+    # ── Multi-agent pathway: try specialist agents first ──────────────────────
+    specialist_section = ""
+    specialist_analyses = _run_specialist_agents(crew_state)
+    if specialist_analyses:
+        parts = []
+        labels = {"radiation": "Radiation Specialist", "cardio": "Cardiovascular Specialist", "circadian": "Circadian/Sleep Specialist"}
+        for role, text in specialist_analyses.items():
+            parts.append(f"[{labels.get(role, role.upper())} ANALYSIS]\n{text}")
+        specialist_section = "\n\n".join(parts)
+        logger.info("Multi-agent specialist inputs ready — feeding to Orchestrator")
+
+    # ── Build Orchestrator prompt (enriched with specialist context if available) ──
+    agent_header = (
+        "SPECIALIST AGENT REPORTS (pre-synthesised):\n" + specialist_section + "\n\n"
+        if specialist_section else ""
+    )
+
+    prompt = f"""You are the autonomous AegisCrew AI Orchestrator — synthesize the specialist reports below into a unified executive briefing.
 {briefing_instruction}
 {comms_context}
 {systems_alert_text}
-{rag_ctx}
+{agent_header}{rag_ctx}
 
 {anomaly_summary}
 
@@ -295,13 +474,32 @@ Mission Day: {crew_state.mission_elapsed_day}
 Active Scenario: {crew_state.active_scenario}
 Fleet Readiness: {crew_state.fleet_readiness:.1f}% [{crew_state.fleet_status}]
 
-Format the briefing with: 1) Fleet Status Overview 2) Per-Crew Risk Summary 3) Active Protocols 4) Recommended Actions."""
+Format the briefing with: 1) Fleet Status Overview 2) Per-Crew Risk Summary (reference specialist reports) 3) Active Protocols 4) Recommended Actions."""
 
     response_text, is_mock = _call_granite(prompt)
 
     if is_mock or response_text is None:
         response_text = _mock_briefing(crew_state)
         is_mock = True
+
+    # Audit log: every briefing generation is a traceable autonomous AI action
+    audit_log.append(
+        event_type=EVENT_BRIEFING_GENERATED,
+        astronaut_id="FLEET",
+        summary=(
+            f"Executive briefing generated [{'mock' if is_mock else 'live Granite'}] — "
+            f"Fleet readiness {crew_state.fleet_readiness:.1f}% [{crew_state.fleet_status}] "
+            f"scenario={crew_state.active_scenario}"
+        ),
+        data_snapshot={
+            "fleet_readiness": crew_state.fleet_readiness,
+            "fleet_status": crew_state.fleet_status,
+            "active_scenario": crew_state.active_scenario,
+            "mock_mode": is_mock,
+            "crew_wide_alert": crew_state.crew_wide_alert.pattern_type
+                if crew_state.crew_wide_alert else None,
+        },
+    )
 
     return AgentBriefingResponse(
         briefing=response_text,
@@ -336,6 +534,24 @@ Use numbered steps. Be concise and clinically specific."""
     if is_mock or response_text is None:
         response_text = _mock_prescribe(crew_id, anomaly_text)
         is_mock = True
+
+    # Audit log: countermeasure prescription is a traceable autonomous clinical action
+    audit_log.append(
+        event_type=EVENT_COUNTERMEASURE,
+        astronaut_id=crew_id,
+        summary=(
+            f"Countermeasure prescribed for {crew_id} — "
+            f"{len(anomalies)} active anomal{'y' if len(anomalies)==1 else 'ies'} "
+            f"[{'mock' if is_mock else 'live Granite'}]"
+        ),
+        data_snapshot={
+            "crew_id": crew_id,
+            "anomaly_count": len(anomalies),
+            "anomaly_types": [a.category for a in anomalies],
+            "severities": [a.severity for a in anomalies],
+            "mock_mode": is_mock,
+        },
+    )
 
     # Map anomaly protocol IDs to structured Countermeasure objects
     from backend.data.nasa_loader import get_protocol_by_id
