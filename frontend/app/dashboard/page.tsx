@@ -11,7 +11,7 @@ import ComparisonMode from '@/components/ComparisonMode'
 import LiveSpaceData from '@/components/LiveSpaceData'
 import type { CrewStateResponse } from '@/types/telemetry'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const API = process.env.NEXT_PUBLIC_API_URL || ''
 
 export default function MissionControlPage() {
   const [crewState, setCrewState] = useState<CrewStateResponse | null>(null)
