@@ -39,7 +39,7 @@ export default function Header({ missionDay, fleetStatus, fleetReadiness, missio
   const statusCfg = STATUS_COLOR[fleetStatus] || STATUS_COLOR.GREEN
 
   return (
-    <header className="bg-[#0C1222] border-b border-[#1A2438] sticky top-0 z-50">
+    <header className="bg-[#04060C]/95 backdrop-blur border-b border-[#141E33] sticky top-0 z-50">
       <div className="max-w-[1600px] mx-auto px-6 py-3 flex items-center justify-between gap-4">
         {/* Left — Brand */}
         <div className="flex items-center gap-3 min-w-0">

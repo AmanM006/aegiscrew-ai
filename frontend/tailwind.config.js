@@ -10,10 +10,10 @@ module.exports = {
     extend: {
       colors: {
         mission: {
-          bg:      '#050811',
-          surface: '#0B0F19',
-          card:    '#101726',
-          border:  '#1E293B',
+          bg:      '#000000',
+          surface: '#050811',
+          card:    '#070B14',
+          border:  '#141E33',
           cyan:    '#00F0FF',
           emerald: '#10B981',
           amber:   '#F59E0B',

@@ -59,7 +59,7 @@ export default function MissionControlPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-[#0B0F19] font-sans">
+    <div className="min-h-screen bg-black font-sans text-slate-100">
       <Header
         missionDay={crewState?.mission_elapsed_day ?? 142}
         fleetStatus={crewState?.fleet_status ?? 'GREEN'}

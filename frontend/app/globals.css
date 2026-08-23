@@ -4,10 +4,10 @@
 
 :root {
   /* Mission Control colours */
-  --bg:      #060913;
-  --surface: #0C1222;
-  --card:    #0F172A;
-  --border:  #1A2438;
+  --bg:      #000000;
+  --surface: #050811;
+  --card:    #070B14;
+  --border:  #141E33;
   --sky:     #38BDF8;
   --emerald: #10B981;
   --amber:   #F59E0B;
