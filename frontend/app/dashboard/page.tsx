@@ -40,13 +40,13 @@ export default function MissionControlPage() {
   }
 
   const handleScenario = async (scenario: string) => {
+    setActiveScenario(scenario)
     try {
       await fetch(`${API}/api/simulator/scenario`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scenario }),
       })
-      setActiveScenario(scenario)
       await fetchCrewStatus()
     } catch (e) {
       console.error('Scenario switch error', e)
