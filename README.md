@@ -22,9 +22,9 @@
 [![NASA-STD-3001](https://img.shields.io/badge/NASA-STD--3001-FC3D21?style=flat-square)](https://www.nasa.gov/hhp/hf-std3001)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com)
 [![Next.js 14](https://img.shields.io/badge/Next.js-14-000000?style=flat-square&logo=next.js)](https://nextjs.org)
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel%20Production-10B981?style=flat-square&logo=vercel)](https://frontend-one-dun-40.vercel.app)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-aegiscrew--ai.vercel.app-10B981?style=flat-square&logo=vercel)](https://aegiscrew-ai.vercel.app)
 
-**[🌐 Launch Live Mission Control Demo](https://frontend-one-dun-40.vercel.app)** · **[⚡ API Swagger Documentation](http://localhost:8000/docs)**
+**[🌐 Launch Live Mission Control Demo (aegiscrew-ai.vercel.app)](https://aegiscrew-ai.vercel.app)** · **[⚡ API Swagger Documentation](http://localhost:8000/docs)**
 
 </div>
 
