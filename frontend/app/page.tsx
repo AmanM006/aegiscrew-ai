@@ -10,7 +10,13 @@ import FlightSurgeonAI from '@/components/FlightSurgeonAI'
 import SystemAlertBanner from '@/components/SystemAlertBanner'
 import type { CrewStateResponse } from '@/types/telemetry'
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const API =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== 'undefined' &&
+  window.location.hostname !== 'localhost' &&
+  window.location.hostname !== '127.0.0.1'
+    ? ''
+    : 'http://localhost:8000')
 
 export default function MissionControlPage() {
   const [crewState, setCrewState] = useState<CrewStateResponse | null>(null)
