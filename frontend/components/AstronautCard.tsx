@@ -86,6 +86,64 @@ export default function AstronautCard({ astro, prescribing, prescriptionText, on
   const isMLAnomaly = mlResult?.is_anomaly ?? (risk.ml_anomaly_score > 40)
   const mlConf      = risk.confidence || (mlResult?.confidence_str ?? 'threshold-only')
   const mlFeats     = mlResult?.contributing_features ?? []
+  const [isSaved, setIsSaved] = useState(false)
+
+  // Clean Markdown formatter for Granite clinical protocols
+  const renderFormattedProtocol = (raw: string) => {
+    const lines = raw.split('\n')
+    return lines.map((line, idx) => {
+      let trimmed = line.trim()
+      if (!trimmed) return <div key={idx} className="h-1" />
+
+      // Section header (###)
+      if (trimmed.startsWith('###') || trimmed.startsWith('##')) {
+        const title = trimmed.replace(/^#+\s*/, '')
+        return (
+          <div key={idx} className="text-xs font-bold text-sky-400 font-mono mt-2 mb-1 border-b border-sky-500/20 pb-0.5">
+            {title}
+          </div>
+        )
+      }
+
+      // Format bold markdown (**text**)
+      const parts = trimmed.split(/(\*\*[^*]+\*\*)/g)
+      const formattedContent = parts.map((part, pIdx) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return (
+            <strong key={pIdx} className="text-sky-300 font-semibold">
+              {part.slice(2, -2)}
+            </strong>
+          )
+        }
+        return part
+      })
+
+      // Numbered or bullet list items
+      if (/^\d+\./.test(trimmed)) {
+        return (
+          <div key={idx} className="flex items-start gap-1.5 text-[11px] font-mono text-slate-200 mt-1.5">
+            <span className="text-amber-400 font-bold">{trimmed.match(/^\d+\./)?.[0]}</span>
+            <div className="flex-1 leading-relaxed">{formattedContent.slice(1)}</div>
+          </div>
+        )
+      }
+
+      if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
+        return (
+          <div key={idx} className="flex items-start gap-2 text-[11px] font-mono text-slate-300 ml-2 mt-1">
+            <span className="text-sky-400 mt-0.5">•</span>
+            <div className="flex-1 leading-relaxed">{formattedContent}</div>
+          </div>
+        )
+      }
+
+      return (
+        <p key={idx} className="text-[11px] font-mono leading-relaxed text-slate-200">
+          {formattedContent}
+        </p>
+      )
+    })
+  }
 
   return (
     <>
@@ -119,36 +177,43 @@ export default function AstronautCard({ astro, prescribing, prescriptionText, on
           <div className="flex items-center gap-3 mb-2">
             <ReadinessGauge score={risk.mission_readiness_score} status={risk.status} />
             <div className="min-w-0 flex-1">
-              <div className="font-mono text-[10px] text-slate-500 uppercase tracking-wider">{profile.id}</div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">{profile.id}</span>
+                {isSaved && (
+                  <span className="text-[8px] font-mono font-bold uppercase px-1 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-500/30">
+                    Rx Saved
+                  </span>
+                )}
+              </div>
               <div className="font-semibold text-slate-100 text-xs tracking-tight">{profile.name}</div>
               <div className="text-[11px] text-slate-400 truncate">{profile.role}</div>
-
-              {/* Risk Sub-Indices */}
-              <div className="flex flex-wrap gap-1 mt-1.5">
-                {[
-                  { label: 'FAT', val: risk.fatigue_risk_score, high: 50 },
-                  { label: 'CVX', val: risk.cardiovascular_risk_score, high: 50 },
-                  { label: 'RAD', val: risk.radiation_risk_score, high: 50 },
-                  { label: 'ML',  val: risk.ml_anomaly_score, high: 40 },
-                ].map((r) => (
-                  <span
-                    key={r.label}
-                    className="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded"
-                    style={{
-                      background: r.val >= r.high ? '#EF444420' : '#162033',
-                      color:       r.val >= r.high ? '#EF4444'  : '#94A3B8',
-                    }}
-                  >
-                    {r.label} {r.val.toFixed(0)}
-                  </span>
-                ))}
-              </div>
             </div>
+          </div>
+
+          {/* Risk Sub-Indices */}
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {[
+              { label: 'FAT', val: risk.fatigue_risk_score, high: 50 },
+              { label: 'CVX', val: risk.cardiovascular_risk_score, high: 50 },
+              { label: 'RAD', val: risk.radiation_risk_score, high: 50 },
+              { label: 'ML',  val: risk.ml_anomaly_score, high: 40 },
+            ].map((r) => (
+              <span
+                key={r.label}
+                className="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded"
+                style={{
+                  background: r.val >= r.high ? '#EF444420' : '#162033',
+                  color:       r.val >= r.high ? '#EF4444'  : '#94A3B8',
+                }}
+              >
+                {r.label} {r.val.toFixed(0)}
+              </span>
+            ))}
           </div>
 
           {/* ML Confidence Badge — always visible */}
           <div
-            className="rounded border mb-2 overflow-hidden"
+            className="rounded border my-2 overflow-hidden"
             style={{
               background:  isMLAnomaly ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)',
               borderColor: isMLAnomaly ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)',
@@ -268,6 +333,7 @@ export default function AstronautCard({ astro, prescribing, prescriptionText, on
             onClick={() => {
               onPrescribe()
               setShowPrescription(true)
+              setIsSaved(false)
             }}
             disabled={prescribing}
             className="w-full py-1.5 px-3 bg-[#080D1A] hover:border-sky-500/40 border border-[#162033] text-sky-300 text-xs font-mono rounded transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
@@ -278,20 +344,40 @@ export default function AstronautCard({ astro, prescribing, prescriptionText, on
 
           {/* Prescription Panel */}
           {showPrescription && prescriptionText && (
-            <div className="mt-2.5 p-3 rounded bg-amber-950/30 border border-amber-500/30 text-amber-200 text-xs font-mono space-y-1.5">
-              <div className="flex items-center justify-between font-bold text-amber-300 text-[11px]">
-                <span className="flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3" />
-                  <span>IBM GRANITE PROTOCOL</span>
+            <div className="mt-2.5 p-3.5 rounded bg-[#060A14] border border-sky-500/40 text-slate-100 text-xs font-mono space-y-2 shadow-2xl">
+              <div className="flex items-center justify-between font-bold text-sky-300 text-[11px] border-b border-[#1A2438] pb-1.5">
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="tracking-wide">IBM GRANITE 4 CLINICAL PROTOCOL</span>
                 </span>
                 <button
                   onClick={() => setShowPrescription(false)}
-                  className="text-slate-500 hover:text-slate-300 text-[10px]"
+                  className="text-slate-400 hover:text-white text-xs px-1"
                 >
                   ✕
                 </button>
               </div>
-              <p className="text-[11px] leading-relaxed whitespace-pre-wrap text-amber-100/90">{prescriptionText}</p>
+
+              {/* Clean Formatted Protocol Output */}
+              <div className="space-y-1 max-h-[260px] overflow-y-auto pr-1">
+                {renderFormattedProtocol(prescriptionText)}
+              </div>
+
+              {/* Save & Authorize Action Button */}
+              <div className="pt-2 border-t border-[#1A2438] flex items-center justify-between gap-2">
+                <button
+                  onClick={() => setIsSaved(true)}
+                  disabled={isSaved}
+                  className={`w-full py-1.5 px-2 rounded text-[10px] font-mono font-semibold flex items-center justify-center gap-1.5 transition-colors ${
+                    isSaved
+                      ? 'bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 cursor-default'
+                      : 'bg-sky-950/60 hover:bg-sky-900/80 border border-sky-500/40 text-sky-200'
+                  }`}
+                >
+                  <CheckCircle className="w-3 h-3" />
+                  <span>{isSaved ? '✓ Authorized & Saved in Patient Record' : 'Authorize & Save to Patient Chart'}</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
