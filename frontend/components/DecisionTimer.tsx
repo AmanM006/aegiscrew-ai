@@ -105,7 +105,7 @@ function LunarRelayPanel({
   )
 }
 
-// ─── Mars panel: full animated countdown ─────────────────────────────────────
+// ─── Mars panel: dual comparative execution timeline ─────────────────────────
 function MarsCountdownPanel({
   decisionTimestampMs,
   commsDelaySeconds,
@@ -122,54 +122,70 @@ function MarsCountdownPanel({
   const elapsedMs    = now - decisionTimestampMs
   const elapsedSec   = elapsedMs / 1000
   const earthReplyIn = Math.max(0, commsDelaySeconds - elapsedSec)
-  const progress     = Math.min(1, elapsedSec / commsDelaySeconds)
-
-  const barColor = progress < 0.5
-    ? '#10B981'   // emerald — early
-    : progress < 0.85
-    ? '#F59E0B'   // amber — midway
-    : '#EF4444'   // red — near/past
+  const transitProgress = Math.min(1, elapsedSec / commsDelaySeconds)
 
   return (
-    <div className="px-4 py-3 rounded-lg bg-[#080D1A] border border-[#1A2438] space-y-2.5 text-[10px] font-mono">
-      {/* ── Text row ── */}
-      <div className="flex flex-wrap items-center gap-4">
+    <div className="px-4 py-3 rounded-lg bg-[#050811] border border-[#1A2438] space-y-3 text-[10px] font-mono shadow-2xl">
+      {/* Header status row */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#141E33] pb-2">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+            <span className="text-slate-300 font-bold uppercase tracking-wider text-[10px]">
+              Decision Speed Comparison
+            </span>
+          </div>
+          <span className="text-slate-600 hidden sm:block">|</span>
+          <span className="text-slate-400 hidden sm:block">Deep Space Habitat (140M miles from Earth)</span>
+        </div>
+
         <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
-          <span className="text-slate-400">AI Decision:</span>
-          <span className="text-emerald-400 font-semibold tabular-nums">
-            {formatElapsed(elapsedMs)} ago
+          <span className="px-2 py-0.5 rounded bg-red-950/80 border border-red-500/40 text-red-300 font-bold uppercase text-[9px] tracking-wide animate-pulse">
+            ⚡ 20.0m Ground Lag — Autonomous AI Active
           </span>
         </div>
-
-        <span className="text-slate-700 hidden sm:block">|</span>
-
-        <div className="hidden sm:flex items-center gap-2">
-          <span className="text-slate-400">Earth Reply In:</span>
-          <span className="font-bold tabular-nums" style={{ color: earthReplyIn > 0 ? '#EF4444' : '#10B981' }}>
-            {formatCountdown(earthReplyIn)}
-          </span>
-        </div>
-
-        <span className="text-slate-700 hidden lg:block">|</span>
-        <span className="hidden lg:block text-red-400 font-semibold uppercase tracking-wider text-[9px]">
-          ⚡ Deep Space — Full Autonomous Medical Command
-        </span>
       </div>
 
-      {/* ── Progress bar ── */}
+      {/* Track 1: On-Board AI (Instant Execution) */}
       <div className="space-y-1">
-        <div className="relative h-1.5 rounded-full bg-[#1A2438] overflow-hidden">
+        <div className="flex justify-between items-center text-[9px]">
+          <span className="text-emerald-400 font-bold flex items-center gap-1">
+            <span>⚡ On-Board IBM Granite 4 Medical AI</span>
+            <span className="text-emerald-500/70 font-normal">(Edge Autonomy)</span>
+          </span>
+          <span className="text-emerald-300 font-bold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/30">
+            ✓ Synthesized in 0.8s · Protocol Deployed
+          </span>
+        </div>
+        <div className="relative h-2 rounded-full bg-[#0E1726] overflow-hidden border border-emerald-500/30">
           <div
-            className="absolute left-0 top-0 h-full rounded-full transition-none"
-            style={{ width: `${progress * 100}%`, background: barColor }}
+            className="absolute left-0 top-0 h-full rounded-full bg-emerald-400 shadow-[0_0_8px_#10B981]"
+            style={{ width: '100%' }}
           />
         </div>
-        <div className="flex justify-between text-[9px] text-slate-600">
-          <span className="text-emerald-500 font-semibold">⚡ AI acted (&lt;1s)</span>
-          <span className="text-slate-500 tabular-nums">
-            Earth reply at {pad2(Math.floor(commsDelaySeconds / 60))}m {pad2(commsDelaySeconds % 60)}s
+      </div>
+
+      {/* Track 2: Earth Ground Comms (Speed-of-Light Radio Delay) */}
+      <div className="space-y-1 pt-0.5">
+        <div className="flex justify-between items-center text-[9px]">
+          <span className="text-red-400 font-bold flex items-center gap-1">
+            <span>📡 Earth Houston Flight Surgeon</span>
+            <span className="text-red-500/70 font-normal">(Speed-of-Light Radio Delay)</span>
           </span>
+          <span className="text-red-300 font-bold bg-red-950/60 px-1.5 py-0.5 rounded border border-red-500/30 tabular-nums">
+            {earthReplyIn > 0 ? `Radio Signal in Transit: ${formatCountdown(earthReplyIn)} remaining` : '✓ Earth Signal Arrived'}
+          </span>
+        </div>
+        <div className="relative h-2 rounded-full bg-[#0E1726] overflow-hidden border border-red-500/30">
+          <div
+            className="absolute left-0 top-0 h-full rounded-full bg-red-500 shadow-[0_0_8px_#EF4444] transition-none"
+            style={{ width: `${transitProgress * 100}%` }}
+          />
+        </div>
+        <div className="flex justify-between text-[8px] text-slate-500 pt-0.5">
+          <span>T+0s: Anomaly Occurred</span>
+          <span className="text-slate-400 italic">22-min speed-of-light delay across 140M miles</span>
+          <span className="text-red-400 font-semibold">T+20m 00s: Earliest Earth Reply</span>
         </div>
       </div>
     </div>
