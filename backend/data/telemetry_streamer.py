@@ -95,7 +95,7 @@ def _row_to_frame(row: pd.Series, overrides: Dict | None = None) -> TelemetryFra
             spe_alert_status=spe_status,  # type: ignore[arg-type]
         ),
         atmosphere=CabinAtmosphere(
-            cabin_co2_ppm=float(d.get("cabin_co2_ppm", 2600)),
+            cabin_co2_ppm=float(d.get("cabin_co2_ppm", 2600)) + {"ASTRO-01": 75.0, "ASTRO-02": -45.0, "ASTRO-03": 110.0, "ASTRO-04": -80.0}.get(str(d.get("crew_id", "")), 0.0),
             cabin_o2_percent=float(d.get("cabin_o2_percent", 20.9)),
             cabin_pressure_kpa=float(d.get("cabin_pressure_kpa", 101.3)),
         ),

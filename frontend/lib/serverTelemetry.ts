@@ -88,13 +88,22 @@ export function buildCrewState(scenario: string = _activeScenario): CrewStateRes
     for (let i = 47; i >= 0; i--) {
       const tSec = nowMs - i * 30 * 60 * 1000
       const phase = (48 - i) / 48 * Math.PI * 2
+      const co2Offsets: Record<string, number> = {
+        'ASTRO-01': 80,
+        'ASTRO-02': -50,
+        'ASTRO-03': 120,
+        'ASTRO-04': -90,
+      }
+      const crewOffset = co2Offsets[p.id] ?? 0
+      const phaseOffset = p.id === 'ASTRO-01' ? 0 : p.id === 'ASTRO-02' ? 0.7 : p.id === 'ASTRO-03' ? 1.4 : 2.1
+
       history.push({
         timestamp_utc: new Date(tSec).toISOString(),
         mission_day: 142,
         crew_id: p.id,
         vitals: {
-          heart_rate_bpm: p.baseline_hr + Math.sin(phase) * 3 + (Math.random() * 2 - 1),
-          hrv_rmssd_ms: p.baseline_hrv + Math.cos(phase) * 4 + (Math.random() * 2 - 1),
+          heart_rate_bpm: p.baseline_hr + Math.sin(phase + phaseOffset) * 4 + (Math.random() * 2 - 1),
+          hrv_rmssd_ms: p.baseline_hrv + Math.cos(phase + phaseOffset) * 5 + (Math.random() * 2 - 1),
           spo2_percent: p.baseline_spo2 - Math.random() * 0.4,
           core_temp_c: 36.8 + Math.sin(phase) * 0.2,
           blood_pressure: '118/76',
@@ -107,19 +116,18 @@ export function buildCrewState(scenario: string = _activeScenario): CrewStateRes
           circadian_phase_shift_hrs: 0.2,
         },
         radiation: {
-          daily_radiation_mgy: 0.18 + Math.random() * 0.04,
+          daily_radiation_mgy: 0.18 + Math.sin(phase * 2 + phaseOffset) * 0.05 + Math.random() * 0.03,
           cumulative_radiation_msv: 42.5,
           spe_alert_status: 'NOMINAL',
         },
         atmosphere: {
-          cabin_co2_ppm: 2450 + Math.sin(phase) * 150,
+          cabin_co2_ppm: 2450 + Math.sin(phase + phaseOffset) * 160 + crewOffset,
           cabin_o2_percent: 21.0,
           cabin_pressure_kpa: 101.3,
         },
         cognitive: {
           pvt_reaction_time_ms: p.baseline_pvt_ms + Math.sin(phase) * 8,
-          fatigue_index: 12.0,
-          cognitive_load_score: 18.0,
+          fatigue_index: 0.15,
         },
         composite_readiness_score: 95.0,
         status_traffic_light: 'GREEN',

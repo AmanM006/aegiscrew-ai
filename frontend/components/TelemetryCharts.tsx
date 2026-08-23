@@ -23,11 +23,14 @@ function buildTimeSeries(
   }))
 }
 
-// Build human-readable time label: index 0 = "-24h", last index = "Now"
+// Build human-readable time label: exact 6-hour intervals
 function makeTimeLabel(i: number, total: number): string {
-  const hoursAgo = Math.round(((total - 1 - i) / (total - 1)) * 24)
-  if (hoursAgo === 0) return 'Now'
-  return `-${hoursAgo}h`
+  if (i === 0) return '-24h'
+  if (i === Math.round((total - 1) * 0.25)) return '-18h'
+  if (i === Math.round((total - 1) * 0.5)) return '-12h'
+  if (i === Math.round((total - 1) * 0.75)) return '-6h'
+  if (i === total - 1) return 'Now'
+  return ''
 }
 
 // Merge multi-crew arrays by index position, injecting a timeLabel for X-axis
@@ -127,13 +130,13 @@ export default function TelemetryCharts({ crew }: Props) {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={hrvData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1F2D45" />
-              <XAxis dataKey="timeLabel" tick={TICK_STYLE} tickLine={false} axisLine={false} interval={11} />
+              <XAxis dataKey="timeLabel" tick={TICK_STYLE} tickLine={false} axisLine={false} interval={0} />
               <YAxis tick={TICK_STYLE} tickLine={false} axisLine={false} domain={[0, 90]} width={28} />
               <Tooltip content={<CustomTooltip unit=" ms" />} />
               <ReferenceLine y={30} stroke="#EF4444" strokeDasharray="4 2" label={{ value: '⚠ 30ms', fill: '#EF4444', fontSize: 9 }} />
               {crewData.map((c, i) => (
                 <Line key={c.id} type="monotone" dataKey={c.id} stroke={CREW_COLORS[i]}
-                  strokeWidth={1.5} dot={false} activeDot={{ r: 3 }} />
+                  strokeWidth={i === 0 ? 2 : 1.5} dot={false} activeDot={{ r: 3 }} />
               ))}
             </LineChart>
           </ResponsiveContainer>
@@ -147,13 +150,13 @@ export default function TelemetryCharts({ crew }: Props) {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={hrData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1F2D45" />
-              <XAxis dataKey="timeLabel" tick={TICK_STYLE} tickLine={false} axisLine={false} interval={11} />
+              <XAxis dataKey="timeLabel" tick={TICK_STYLE} tickLine={false} axisLine={false} interval={0} />
               <YAxis tick={TICK_STYLE} tickLine={false} axisLine={false} domain={[40, 140]} width={28} />
               <Tooltip content={<CustomTooltip unit=" bpm" />} />
               <ReferenceLine y={100} stroke="#EF4444" strokeDasharray="4 2" label={{ value: '⚠ 100', fill: '#EF4444', fontSize: 9 }} />
               {crewData.map((c, i) => (
                 <Line key={c.id} type="monotone" dataKey={c.id} stroke={CREW_COLORS[i]}
-                  strokeWidth={1.5} dot={false} activeDot={{ r: 3 }} />
+                  strokeWidth={i === 0 ? 2 : 1.5} dot={false} activeDot={{ r: 3 }} />
               ))}
             </LineChart>
           </ResponsiveContainer>
@@ -167,14 +170,14 @@ export default function TelemetryCharts({ crew }: Props) {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={sleepData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1F2D45" />
-              <XAxis dataKey="timeLabel" tick={TICK_STYLE} tickLine={false} axisLine={false} interval={11} />
+              <XAxis dataKey="timeLabel" tick={TICK_STYLE} tickLine={false} axisLine={false} interval={0} />
               <YAxis tick={TICK_STYLE} tickLine={false} axisLine={false} domain={[0, 12]} width={28} />
               <Tooltip content={<CustomTooltip unit=" h" />} />
               <ReferenceLine y={4.5} stroke="#F59E0B" strokeDasharray="4 2" label={{ value: '⚠ 4.5h', fill: '#F59E0B', fontSize: 9 }} />
               <ReferenceLine y={7.0} stroke="#EF4444" strokeDasharray="4 2" label={{ value: '✖ 7h', fill: '#EF4444', fontSize: 9 }} />
               {crewData.map((c, i) => (
                 <Line key={c.id} type="monotone" dataKey={c.id} stroke={CREW_COLORS[i]}
-                  strokeWidth={1.5} dot={false} activeDot={{ r: 3 }} />
+                  strokeWidth={i === 0 ? 2 : 1.5} dot={false} activeDot={{ r: 3 }} />
               ))}
             </LineChart>
           </ResponsiveContainer>
@@ -188,14 +191,14 @@ export default function TelemetryCharts({ crew }: Props) {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={radData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1F2D45" />
-              <XAxis dataKey="timeLabel" tick={TICK_STYLE} tickLine={false} axisLine={false} interval={11} />
+              <XAxis dataKey="timeLabel" tick={TICK_STYLE} tickLine={false} axisLine={false} interval={0} />
               <YAxis tick={TICK_STYLE} tickLine={false} axisLine={false} width={28} />
               <Tooltip content={<CustomTooltip unit=" mGy" />} />
               <ReferenceLine y={5} stroke="#F59E0B" strokeDasharray="4 2" label={{ value: '⚠ 5', fill: '#F59E0B', fontSize: 9 }} />
               <ReferenceLine y={50} stroke="#EF4444" strokeDasharray="4 2" label={{ value: 'SPE 50', fill: '#EF4444', fontSize: 9 }} />
               {crewData.map((c, i) => (
                 <Line key={c.id} type="monotone" dataKey={c.id} stroke={CREW_COLORS[i]}
-                  strokeWidth={1.5} dot={false} activeDot={{ r: 3 }} />
+                  strokeWidth={i === 0 ? 2 : 1.5} dot={false} activeDot={{ r: 3 }} />
               ))}
             </LineChart>
           </ResponsiveContainer>
@@ -209,14 +212,14 @@ export default function TelemetryCharts({ crew }: Props) {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={co2Data}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1F2D45" />
-              <XAxis dataKey="timeLabel" tick={TICK_STYLE} tickLine={false} axisLine={false} interval={11} />
-              <YAxis tick={TICK_STYLE} tickLine={false} axisLine={false} domain={[0, 8000]} width={36} />
+              <XAxis dataKey="timeLabel" tick={TICK_STYLE} tickLine={false} axisLine={false} interval={0} />
+              <YAxis tick={TICK_STYLE} tickLine={false} axisLine={false} domain={[1500, 5500]} width={36} />
               <Tooltip content={<CustomTooltip unit=" ppm" />} />
               <ReferenceLine y={3000} stroke="#10B981" strokeDasharray="4 2" label={{ value: '✓ 3000', fill: '#10B981', fontSize: 9 }} />
               <ReferenceLine y={4500} stroke="#F59E0B" strokeDasharray="4 2" label={{ value: '⚠ 4500', fill: '#F59E0B', fontSize: 9 }} />
               {crewData.map((c, i) => (
                 <Line key={c.id} type="monotone" dataKey={c.id} stroke={CREW_COLORS[i]}
-                  strokeWidth={1.5} dot={false} activeDot={{ r: 3 }} />
+                  strokeWidth={i === 0 ? 2.2 : 1.6} dot={false} activeDot={{ r: 3 }} />
               ))}
             </LineChart>
           </ResponsiveContainer>
