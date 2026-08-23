@@ -129,10 +129,10 @@ export function buildCrewState(scenario: string = _activeScenario): CrewStateRes
     const latest = { ...history[history.length - 1] }
     const anomalies: RiskFactor[] = []
     const contributing_features: string[] = []
-    let fatScore = 8
-    let cvxScore = 12
-    let radScore = 6
-    let mlScore = 38
+    let fatScore = p.id === 'ASTRO-01' ? 6 : p.id === 'ASTRO-02' ? 8 : p.id === 'ASTRO-03' ? 10 : 3
+    let cvxScore = p.id === 'ASTRO-01' ? 4 : p.id === 'ASTRO-02' ? 9 : p.id === 'ASTRO-03' ? 11 : 2
+    let radScore = p.id === 'ASTRO-01' ? 2 : p.id === 'ASTRO-02' ? 4 : p.id === 'ASTRO-03' ? 3 : 2
+    let mlScore  = p.id === 'ASTRO-01' ? 12 : p.id === 'ASTRO-02' ? 14 : p.id === 'ASTRO-03' ? 15 : 8
     let isAnomaly = false
     let hoursToRed: number | null = null
     let hoursToAmber: number | null = null

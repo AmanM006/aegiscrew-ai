@@ -9,6 +9,7 @@ import TelemetryCharts from '@/components/TelemetryCharts'
 import FlightSurgeonAI from '@/components/FlightSurgeonAI'
 import ComparisonMode from '@/components/ComparisonMode'
 import LiveSpaceData from '@/components/LiveSpaceData'
+import SystemAlertBanner from '@/components/SystemAlertBanner'
 import type { CrewStateResponse } from '@/types/telemetry'
 
 const API = process.env.NEXT_PUBLIC_API_URL || ''
@@ -19,6 +20,9 @@ export default function MissionControlPage() {
   const [error, setError] = useState<string | null>(null)
   const [activeScenario, setActiveScenario] = useState<string>('nominal')
   const [commsMode, setCommsMode] = useState<'ISS' | 'Lunar Gateway' | 'Mars Transit'>('Mars Transit')
+
+  const COMMS_DELAY_MAP: Record<string, number> = { 'ISS': 0, 'Lunar Gateway': 1.3, 'Mars Transit': 1200 }
+  const commsDelaySeconds = COMMS_DELAY_MAP[commsMode] ?? 1200
 
   const fetchCrewStatus = async () => {
     try {
@@ -51,16 +55,16 @@ export default function MissionControlPage() {
 
   useEffect(() => {
     fetchCrewStatus()
-    const interval = setInterval(fetchCrewStatus, 10_000)   // poll every 10 s
+    const interval = setInterval(fetchCrewStatus, 10_000)
     return () => clearInterval(interval)
   }, [])
 
   return (
-    <div className="min-h-screen bg-[#0B0F19] font-sans">
+    <div className="min-h-screen bg-black font-sans text-slate-100">
       <Header
         missionDay={crewState?.mission_elapsed_day ?? 142}
         fleetStatus={crewState?.fleet_status ?? 'GREEN'}
-        fleetReadiness={crewState?.fleet_readiness ?? 100}
+        fleetReadiness={crewState?.fleet_readiness ?? 95.0}
         missionName={crewState?.mission_name ?? 'Artemis Mars Transit'}
       />
 
@@ -93,6 +97,11 @@ export default function MissionControlPage() {
 
         {crewState && (
           <>
+            {/* Cross-crew systems alert — only shown when fleet-wide pattern detected */}
+            {crewState.crew_wide_alert && (
+              <SystemAlertBanner alert={crewState.crew_wide_alert} />
+            )}
+
             {/* 4-crew digital twin cards */}
             <CrewMatrix crew={crewState.crew} apiBase={API} />
 
@@ -110,6 +119,7 @@ export default function MissionControlPage() {
               crewState={crewState}
               activeScenario={activeScenario}
               apiBase={API}
+              commsDelaySeconds={commsDelaySeconds}
             />
           </>
         )}
