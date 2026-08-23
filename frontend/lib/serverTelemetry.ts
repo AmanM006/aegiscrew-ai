@@ -128,6 +128,7 @@ export function buildCrewState(scenario: string = _activeScenario): CrewStateRes
         cognitive: {
           pvt_reaction_time_ms: p.baseline_pvt_ms + Math.sin(phase) * 8,
           fatigue_index: 0.15,
+          cognitive_load_score: 50.0,
         },
         composite_readiness_score: 95.0,
         status_traffic_light: 'GREEN',
