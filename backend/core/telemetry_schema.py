@@ -224,4 +224,4 @@ class AgentChatResponse(BaseModel):
 
 
 class ScenarioRequest(BaseModel):
-    scenario: Literal["nominal", "spe", "co2_spike", "sleep_deprivation"]
+    scenario: Literal["nominal", "spe", "co2_spike", "sleep_deprivation", "parmitano_eva", "lunar_surface"]
