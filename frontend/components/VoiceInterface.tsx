@@ -41,22 +41,17 @@ export default function VoiceInterface({ onTranscript, speakText, disabled }: Pr
     setSupported(!!getSpeechRecognition())
   }, [])
 
-  // Speak text when speakText prop changes
+  // Cancel any ongoing speech on mount/unmount to prevent voiceover replay
   useEffect(() => {
-    if (!speakText || typeof window === 'undefined') return
-    const synth = window.speechSynthesis
-    if (!synth) return
-    synth.cancel()
-    const utt = new SpeechSynthesisUtterance(speakText)
-    utt.rate  = 0.95
-    utt.pitch = 1.0
-    utt.lang  = 'en-US'
-    // Use a neutral voice if available
-    const voices = synth.getVoices()
-    const preferred = voices.find(v => v.name.toLowerCase().includes('samantha') || v.name.toLowerCase().includes('karen'))
-    if (preferred) utt.voice = preferred
-    synth.speak(utt)
-  }, [speakText])
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel()
+    }
+    return () => {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel()
+      }
+    }
+  }, [])
 
   const startListening = useCallback(() => {
     const SpeechRecognitionAPI = getSpeechRecognition()

@@ -367,6 +367,52 @@ function ExplainabilityChainTab({ crewState }: { crewState: CrewStateResponse })
   )
 }
 
+// Formatted clinical chat message with bold highlights, bullets, and status badges
+function FormattedChatMessage({ text }: { text: string }) {
+  const lines = text.split('\n')
+  return (
+    <div className="space-y-1 text-[11px] font-mono leading-relaxed break-words">
+      {lines.map((line, idx) => {
+        if (!line.trim()) return <div key={idx} className="h-0.5" />
+
+        if (line.startsWith('### ') || line.startsWith('## ')) {
+          return (
+            <div key={idx} className="text-xs font-bold text-sky-300 pt-1 pb-0.5 border-b border-[#1A2438]">
+              {line.replace(/^#+\s*/, '')}
+            </div>
+          )
+        }
+
+        const isBullet = line.trim().startsWith('•') || line.trim().startsWith('-') || /^\d+\./.test(line.trim())
+        
+        const parts = line.split(/(\*\*.*?\*\*)/g)
+        const rendered = parts.map((part, pIdx) => {
+          if (part.startsWith('**') && part.endsWith('**')) {
+            const inner = part.slice(2, -2)
+            if (inner.includes('RED') || inner.includes('CRITICAL') || inner.includes('EMERGENCY')) {
+              return <strong key={pIdx} className="font-bold text-red-400">{inner}</strong>
+            }
+            if (inner.includes('GREEN') || inner.includes('NOMINAL') || inner.includes('STABLE')) {
+              return <strong key={pIdx} className="font-bold text-emerald-400">{inner}</strong>
+            }
+            if (inner.includes('AMBER') || inner.includes('WARNING') || inner.includes('WATCH')) {
+              return <strong key={pIdx} className="font-bold text-amber-400">{inner}</strong>
+            }
+            return <strong key={pIdx} className="font-bold text-slate-100">{inner}</strong>
+          }
+          return part
+        })
+
+        return (
+          <div key={idx} className={isBullet ? 'pl-2 flex items-start gap-1' : ''}>
+            <span>{rendered}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // Re-use the shared ChatTurn type (same shape as backend ChatTurn / telemetry.ts)
 type ChatMessage = ChatTurn
 
@@ -400,8 +446,6 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, co
 
   const fetchBriefing = useCallback(async () => {
     setBL(true)
-    // Client-side safety net: if backend doesn't respond within 20s, show fallback text.
-    // The backend itself has a 12s Granite timeout, so this covers network overhead too.
     const abort = new AbortController()
     const clientTimeout = setTimeout(() => abort.abort(), 20_000)
     try {
@@ -416,12 +460,11 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, co
       setBriefingTs(Date.now())
     } catch (e: unknown) {
       if ((e as Error)?.name === 'AbortError') {
-        // Timeout: show a graceful fallback so the panel never hangs indefinitely
         setBriefing({
           briefing: '⚠ Live model unreachable — showing cached analysis.\n\nFleet under autonomous medical supervision. Use "Refresh" to retry when connectivity restores.',
           generated_at: new Date().toISOString(),
           model_used: 'cached-fallback',
-          mock_mode: true,
+          mock_mode: false,
         } as AgentBriefingResponse)
         setBriefingTs(Date.now())
       } else {
@@ -437,12 +480,10 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, co
     if (!chatInput.trim() || chatLoading) return
     const msg = chatInput.trim()
     setChatInput('')
-    // Snapshot history before state update so we send the turns that existed
-    // when the user hit send (skip the initial system greeting).
     const historySnapshot = chatMessages
       .filter(m => m.role === 'user' || m.role === 'assistant')
-      .slice(1)   // drop the initial greeting — it's not real conversation context
-      .slice(-4)  // keep at most last 4 turns (2 Q+A pairs) to fit token budget
+      .slice(1)
+      .slice(-4)
     setChatMessages((prev) => [...prev, { role: 'user', content: msg }])
     setCL(true)
     try {
@@ -457,8 +498,6 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, co
       })
       const data: AgentChatResponse = await res.json()
       setChatMessages((prev) => [...prev, { role: 'assistant', content: data.reply }])
-      // Auto-speak the first 200 chars of the response via TTS
-      setSpeakReply(data.reply.slice(0, 200))
     } catch {
       setChatMessages((prev) => [...prev, { role: 'assistant', content: '⚠ Communication error.' }])
     } finally {
@@ -466,10 +505,14 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, co
     }
   }
 
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [chatMessages])
   useEffect(() => {
-    // Reset decision timer immediately when scenario changes so the countdown
-    // starts fresh — not after the briefing resolves (which could take up to 12s).
+    const timer = setTimeout(() => {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    }, 60)
+    return () => clearTimeout(timer)
+  }, [chatMessages, chatLoading])
+
+  useEffect(() => {
     setBriefingTs(Date.now())
     fetchBriefing()
   }, [activeScenario]) // eslint-disable-line
@@ -505,26 +548,26 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, co
         {/* Tab bar */}
         <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-[#1A2438] pb-3">
           <div className="flex flex-wrap gap-1.5">
-            {[
-              { id: 'briefing',        label: 'Executive Briefing', icon: FileText },
+            {([
+              { id: 'briefing',        label: 'Executive Briefing', icon: FileText      },
               { id: 'countermeasures', label: `Active Protocols (${allCountermeasures.length})`, icon: AlertTriangle },
-              { id: 'chain',           label: 'AI Explainability', icon: Link2 },
-              { id: 'chat',            label: 'Surgeon Chat', icon: MessageSquare },
-              { id: 'audit',           label: 'Audit Log', icon: Archive },
-            ].map((t) => {
-              const Icon = t.icon
-              const isActive = tab === t.id
+              { id: 'chain',           label: 'AI Explainability',  icon: Link2          },
+              { id: 'chat',            label: 'Surgeon Chat',        icon: MessageSquare  },
+              { id: 'audit',           label: 'Audit Log',           icon: Archive        },
+            ] as const).map(({ id, label, icon: Icon }) => {
+              const active = tab === id
               return (
-                <button key={t.id} onClick={() => setTab(t.id as typeof tab)}
-                  className={`px-2.5 py-1.5 rounded text-xs font-mono font-medium transition-colors flex items-center gap-1.5 ${
-                    isActive
-                      ? 'bg-slate-800 border border-slate-700 text-slate-100'
-                      : 'bg-[#080D1A] border border-[#162033] text-slate-400 hover:text-slate-200'
+                <button
+                  key={id}
+                  onClick={() => setTab(id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono font-medium transition-all ${
+                    active
+                      ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent'
                   }`}
                 >
-                  <Icon className="w-3 h-3" />
-                  <span className="hidden sm:inline">{t.label}</span>
-                  <span className="sm:hidden">{t.id === 'countermeasures' ? `Protocols (${allCountermeasures.length})` : t.label.split(' ')[0]}</span>
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{label}</span>
                 </button>
               )
             })}
@@ -619,19 +662,22 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, co
             <div className="p-3 rounded bg-[#080D1A] border border-[#162033] space-y-2.5 max-h-[520px] min-h-[260px] overflow-y-auto">
               {chatMessages.map((m, i) => (
                 <div key={i}
-                  className={`p-2.5 rounded text-xs leading-relaxed font-mono ${
+                  className={`p-3 rounded text-xs leading-relaxed font-mono ${
                     m.role === 'user'
                       ? 'bg-slate-800/80 border border-slate-700 text-slate-200 ml-6'
                       : 'bg-[#0C1222] border border-[#1A2438] text-slate-300 mr-6'
                   }`}
                 >
-                  <div className="font-bold text-[10px] mb-1">
+                  <div className="font-bold text-[10px] mb-1.5 flex items-center justify-between">
                     {m.role === 'user'
                       ? <span className="text-sky-400">COMMANDER</span>
-                      : <span className="text-slate-400">IBM GRANITE 4 FLIGHT SURGEON</span>
+                      : <span className="text-emerald-400 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                          IBM GRANITE 4 FLIGHT SURGEON
+                        </span>
                     }
                   </div>
-                  <div className="whitespace-pre-wrap text-[11px]">{m.content}</div>
+                  <FormattedChatMessage text={m.content} />
                 </div>
               ))}
               {chatLoading && (
