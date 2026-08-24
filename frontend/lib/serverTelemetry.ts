@@ -391,3 +391,5 @@ export function buildCrewState(scenario: string = _activeScenario): CrewStateRes
     crew_wide_alert: crewWideAlert,
   }
 }
+
+export const generateServerTelemetry = buildCrewState
