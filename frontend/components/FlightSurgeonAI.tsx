@@ -413,6 +413,167 @@ function FormattedChatMessage({ text }: { text: string }) {
   )
 }
 
+// Rich Chief Medical Officer Executive Situation Report View
+function ExecutiveBriefingView({ briefingText, loading }: { briefingText?: string; loading: boolean }) {
+  if (loading) {
+    return (
+      <div className="p-8 flex items-center justify-center gap-2.5 text-sky-400 font-mono text-xs bg-[#080D1A] border border-[#162033] rounded-lg">
+        <RefreshCw className="w-4 h-4 animate-spin text-sky-400" />
+        <span>IBM Granite 4 synthesizing clinical flight surgeon briefing...</span>
+      </div>
+    )
+  }
+
+  if (!briefingText) {
+    return (
+      <div className="p-6 text-center text-xs font-mono text-slate-500 border border-dashed border-[#1A2438] rounded-lg">
+        Click &quot;Refresh&quot; to generate the daily executive situation report.
+      </div>
+    )
+  }
+
+  const lines = briefingText.split('\n')
+  let title = ''
+  const metadataRows: { label: string; value: string }[] = []
+  const sections: { heading: string; items: string[] }[] = []
+  let currentSection: { heading: string; items: string[] } | null = null
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim()
+    if (!line) continue
+
+    if (line.startsWith('### ')) {
+      title = line.replace(/^###\s*/, '')
+      continue
+    }
+
+    if (line.startsWith('**') && line.includes(':**') && !currentSection) {
+      const match = line.match(/^\*\*(.*?):\*\*\s*(.*)$/)
+      if (match) {
+        metadataRows.push({ label: match[1], value: match[2] })
+        continue
+      }
+    }
+
+    if (line.match(/^\*\*\d+\.\s*(.*?)\*\*$/) || (line.startsWith('**') && line.endsWith('**') && (line.includes('Surveillance') || line.includes('Summary') || line.includes('Impact') || line.includes('Countermeasures') || line.includes('Recommendations') || line.includes('Status')))) {
+      const headingText = line.replace(/^\*\*/, '').replace(/\*\*$/, '')
+      currentSection = { heading: headingText, items: [] }
+      sections.push(currentSection)
+      continue
+    }
+
+    if (currentSection) {
+      currentSection.items.push(line)
+    } else {
+      metadataRows.push({ label: 'Operational Context', value: line })
+    }
+  }
+
+  const isEmergency = title.includes('🚨') || title.includes('CRITICAL') || title.includes('SPE') || title.includes('ABORT')
+  const isWarning = title.includes('⚠️') || title.includes('WARNING')
+
+  return (
+    <div className="space-y-3 font-mono text-xs">
+      {/* Title Header Card */}
+      {title && (
+        <div
+          className={`p-3 rounded-lg border flex flex-wrap items-center justify-between gap-2 shadow-sm ${
+            isEmergency
+              ? 'bg-red-950/25 border-red-500/40 text-red-300'
+              : isWarning
+              ? 'bg-amber-950/25 border-amber-500/40 text-amber-300'
+              : 'bg-emerald-950/20 border-emerald-500/30 text-emerald-300'
+          }`}
+        >
+          <div className="font-bold text-xs flex items-center gap-2">
+            <span
+              className="w-2 h-2 rounded-full animate-ping inline-block"
+              style={{ backgroundColor: isEmergency ? '#EF4444' : isWarning ? '#F59E0B' : '#10B981' }}
+            />
+            <span>{title}</span>
+          </div>
+          <span className="text-[9px] px-2 py-0.5 rounded bg-[#060A12] border border-[#162033] text-slate-400 font-bold">
+            NASA-STD-3001 COMPLIANT
+          </span>
+        </div>
+      )}
+
+      {/* Mission Metadata Grid */}
+      {metadataRows.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 rounded-lg bg-[#080D1A] border border-[#162033]">
+          {metadataRows.map((row, i) => (
+            <div key={i} className="text-[11px] leading-relaxed">
+              <span className="text-slate-500 font-semibold">{row.label}: </span>
+              <span className="text-slate-200">
+                {row.value.split(/(\*\*.*?\*\*)/g).map((part, pIdx) => {
+                  if (part.startsWith('**') && part.endsWith('**')) {
+                    const inner = part.slice(2, -2)
+                    if (inner.includes('GREEN') || inner.includes('NOMINAL') || inner.includes('STABLE')) {
+                      return <strong key={pIdx} className="text-emerald-400 font-bold">{inner}</strong>
+                    }
+                    if (inner.includes('RED') || inner.includes('CRITICAL') || inner.includes('EMERGENCY')) {
+                      return <strong key={pIdx} className="text-red-400 font-bold">{inner}</strong>
+                    }
+                    if (inner.includes('AMBER') || inner.includes('WARNING')) {
+                      return <strong key={pIdx} className="text-amber-400 font-bold">{inner}</strong>
+                    }
+                    return <strong key={pIdx} className="text-slate-100 font-bold">{inner}</strong>
+                  }
+                  return part
+                })}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Structured Sections */}
+      {sections.map((sec, sIdx) => (
+        <div key={sIdx} className="p-3 rounded-lg bg-[#080D1A] border border-[#162033] space-y-2">
+          <div className="text-[11px] font-bold text-sky-400 border-b border-[#162033] pb-1 flex items-center justify-between">
+            <span>{sec.heading}</span>
+          </div>
+          <div className="space-y-1.5 pl-1">
+            {sec.items.map((item, itemIdx) => {
+              const cleanItem = item.replace(/^-\s*/, '').replace(/^•\s*/, '')
+              const parts = cleanItem.split(/(\*\*.*?\*\*)/g)
+              return (
+                <div key={itemIdx} className="text-[11px] text-slate-300 flex items-start gap-2 leading-relaxed">
+                  <span className="text-sky-500 flex-shrink-0 mt-0.5">•</span>
+                  <span>
+                    {parts.map((part, pIdx) => {
+                      if (part.startsWith('**') && part.endsWith('**')) {
+                        const inner = part.slice(2, -2)
+                        if (inner.includes('GREEN') || inner.includes('NOMINAL') || inner.includes('STABLE') || inner.includes('Nominal')) {
+                          return <strong key={pIdx} className="text-emerald-400 font-bold">{inner}</strong>
+                        }
+                        if (inner.includes('RED') || inner.includes('CRITICAL') || inner.includes('EMERGENCY') || inner.includes('SPE EMERGENCY')) {
+                          return <strong key={pIdx} className="text-red-400 font-bold">{inner}</strong>
+                        }
+                        if (inner.includes('AMBER') || inner.includes('WARNING')) {
+                          return <strong key={pIdx} className="text-amber-400 font-bold">{inner}</strong>
+                        }
+                        if (inner.startsWith('PROT-')) {
+                          return <span key={pIdx} className="px-1.5 py-0.5 rounded bg-sky-950/70 border border-sky-500/40 text-sky-300 font-bold mx-0.5">{inner}</span>
+                        }
+                        if (inner.startsWith('ASTRO-')) {
+                          return <span key={pIdx} className="text-sky-300 font-bold">{inner}</span>
+                        }
+                        return <strong key={pIdx} className="text-slate-100 font-bold">{inner}</strong>
+                      }
+                      return part
+                    })}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // Re-use the shared ChatTurn type (same shape as backend ChatTurn / telemetry.ts)
 type ChatMessage = ChatTurn
 
@@ -582,15 +743,11 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, co
         {/* TAB: Executive Briefing */}
         {tab === 'briefing' && (
           <div className="space-y-2">
-            <div className="p-3.5 rounded bg-[#080D1A] border border-[#162033] text-xs font-mono leading-relaxed text-slate-300 whitespace-pre-wrap max-h-[420px] overflow-y-auto">
-              {briefingLoading ? (
-                <div className="flex items-center gap-1.5 text-sky-400">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>IBM Granite 4 synthesizing clinical briefing...</span>
-                </div>
-              ) : (
-                briefing?.briefing || 'Click "Refresh" to generate the daily executive situation report.'
-              )}
+            <div className="max-h-[460px] overflow-y-auto pr-1">
+              <ExecutiveBriefingView
+                briefingText={briefing?.briefing}
+                loading={briefingLoading}
+              />
             </div>
             {/* Download Report button — always shown after first briefing load */}
             {briefing && !briefingLoading && (
