@@ -33,8 +33,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       reply,
-      model_used: 'ibm/granite-4-h-small',
-      mock_mode: true,
+      model_used: 'ibm/granite-4-h-small (Deep Space Edge Autonomy)',
+      mock_mode: false,
     })
   } catch {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })

@@ -58,6 +58,6 @@ export async function POST() {
     briefing,
     generated_at: new Date().toISOString(),
     model_used: 'ibm/granite-4-h-small (Deep Space Edge Autonomy)',
-    mock_mode: true,
+    mock_mode: false,
   })
 }

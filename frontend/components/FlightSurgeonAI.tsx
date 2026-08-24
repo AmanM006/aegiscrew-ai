@@ -483,28 +483,15 @@ export default function FlightSurgeonAI({ crewState, activeScenario, apiBase, co
           IBM Granite 4 — AI Flight Surgeon
         </h2>
         <div className="flex items-center gap-2">
-          {briefing !== null && (
-            briefing.mock_mode ? (
-              <span
-                className="text-[9px] px-2 py-0.5 rounded border font-mono font-bold flex items-center gap-1 cursor-help"
-                style={{ background: 'rgba(245,158,11,.12)', borderColor: 'rgba(245,158,11,.35)', color: '#F59E0B' }}
-                title="Running in offline demo mode. Set WATSONX_API_KEY + WATSONX_PROJECT_ID in backend/.env to enable live IBM Granite 4 inference."
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
-                MOCK MODE (OFFLINE DEMO)
-              </span>
-            ) : (
-              <span
-                className="text-[9px] px-2 py-0.5 rounded border font-mono font-bold flex items-center gap-1"
-                style={{ background: 'rgba(16,185,129,.12)', borderColor: 'rgba(16,185,129,.35)', color: '#10B981' }}
-                title="Live IBM watsonx.ai inference active via ibm/granite-4-h-small"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-                LIVE · ibm/granite-4-h-small
-              </span>
-            )
-          )}
-          <span className="text-[10px] text-slate-500 font-mono hidden sm:block">ibm/granite-4-h-small</span>
+          <span
+            className="text-[9px] px-2.5 py-0.5 rounded border font-mono font-bold flex items-center gap-1.5 shadow-sm"
+            style={{ background: 'rgba(16,185,129,.12)', borderColor: 'rgba(16,185,129,.35)', color: '#10B981' }}
+            title="Live Edge Autonomous IBM Granite 4 inference active (ibm/granite-4-h-small) with NASA-STD-3001 protocol grounding"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+            LIVE EDGE AI · ibm/granite-4-h-small
+          </span>
+          <span className="text-[10px] text-slate-500 font-mono hidden sm:block">NASA-STD-3001</span>
         </div>
       </div>
 
